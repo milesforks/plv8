@@ -7,19 +7,18 @@
 # structure in v8 which may be different from version to another, but user
 # can specify the v8 version by AUTOV8_VERSION, too.
 #-----------------------------------------------------------------------------#
-AUTOV8_VERSION = 7.4.288.28
-AUTOV8_DIR = build/v8
-AUTOV8_OUT = build/v8/out.gn/x64.release/obj
-AUTOV8_DEPOT_TOOLS = build/depot_tools
+NODEJS_VERSION = v12.3.0
+NODEJS_DIR = build/node
+AUTOV8_DIR = $(NODEJS_DIR)/deps/v8
+AUTOV8_OUT = $(NODEJS_DIR)/out/Release
 AUTOV8_LIB = $(AUTOV8_OUT)/libv8_snapshot.a
-AUTOV8_STATIC_LIBS = -lv8_base -lv8_snapshot -lv8_libplatform -lv8_libbase -lv8_libsampler
-export PATH := $(abspath $(AUTOV8_DEPOT_TOOLS)):$(PATH)
+AUTOV8_STATIC_LIBS = -lv8_base -lv8_snapshot -lv8_libplatform -lv8_libbase -lv8_libsampler -lgenerate_snapshot
 
-SHLIB_LINK += -L$(AUTOV8_OUT) -L$(AUTOV8_OUT)/third_party/icu $(AUTOV8_STATIC_LIBS)
+SHLIB_LINK += -L$(abspath $(AUTOV8_OUT)) $(AUTOV8_STATIC_LIBS)
 V8_OPTIONS = is_component_build=false v8_static_library=true v8_use_snapshot=true v8_use_external_startup_data=false use_custom_libcxx=false
 
 ifndef USE_ICU
-	V8_OPTIONS += v8_enable_i18n_support=false
+	NODEJS_OPTIONS += --without-intl
 endif
 
 all: v8
@@ -27,19 +26,15 @@ all: v8
 # For some reason, this solves parallel make dependency.
 plv8_config.h plv8.so: v8
 
-$(AUTOV8_DEPOT_TOOLS):
+$(NODEJS_DIR):
 	mkdir -p build
-	cd build; git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+	cd build; git clone git@github.com:nodejs/node.git
 
-$(AUTOV8_DIR): $(AUTOV8_DEPOT_TOOLS)
-	cd build; fetch v8; cd v8; git checkout $(AUTOV8_VERSION); gclient sync ; cd build/config ; cd ../.. ; tools/dev/v8gen.py $(PLATFORM) -- $(V8_OPTIONS)
+$(NODEJS_DIR)/config.status: $(NODEJS_DIR)
+	cd build; cd node; git checkout $(NODEJS_VERSION); ./configure $(NODEJS_OPTIONS); cd ..
 
-$(AUTOV8_OUT)/third_party/icu/common/icudtb.dat:
-
-$(AUTOV8_OUT)/third_party/icu/common/icudtl.dat:
-
-v8: $(AUTOV8_DIR)
-	cd $(AUTOV8_DIR) ; env CXXFLAGS=-fPIC CFLAGS=-fPIC ninja -C out.gn/$(PLATFORM) d8
+v8: $(NODEJS_DIR)/config.status
+	env CXXFLAGS=-fPIC CFLAGS=-fPI make -C $(NODEJS_DIR) v8
 
 include Makefile.shared
 
@@ -54,14 +49,14 @@ endif
 # enable direct jsonb conversion by default
 CCFLAGS += -DJSONB_DIRECT_CONVERSION
 
-CCFLAGS += -I$(AUTOV8_DIR)/include -I$(AUTOV8_DIR)
+CCFLAGS += -I$(abspath $(AUTOV8_DIR)/include) -I$(abspath $(AUTOV8_DIR))
 # We're gonna build static link.  Rip it out after include Makefile
 SHLIB_LINK := $(filter-out -lv8, $(SHLIB_LINK))
 
 ifeq ($(OS),Windows_NT)
 	# noop for now
 else
-	SHLIB_LINK += -L$(AUTOV8_OUT)
+	SHLIB_LINK += -L$(abspath $(AUTOV8_OUT))
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Darwin)
 		CCFLAGS += -stdlib=libc++ -std=c++11
@@ -77,5 +72,13 @@ else
 		endif
 		CCFLAGS += -std=c++11
 		SHLIB_LINK += -lrt -std=c++11 -lc++
+	endif
+
+	DESTCPU = $(firstword $(subst ., ,$(PLATFORM)))
+	NODEJS_OPTIONS += --dest-cpu=$(DESTCPU)
+
+	X = $(lastword $(subst ., ,$(PLATFORM)))
+	ifneq ($(X),release)
+		NODEJS_OPTIONS += --debug
 	endif
 endif
