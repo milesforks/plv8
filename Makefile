@@ -28,7 +28,7 @@ plv8_config.h plv8.so: v8
 
 $(NODEJS_DIR):
 	mkdir -p build
-	cd build; git clone git@github.com:nodejs/node.git
+	cd build; git clone https://github.com/nodejs/node.git
 
 $(NODEJS_DIR)/config.status: $(NODEJS_DIR)
 	cd build; cd node; git checkout $(NODEJS_VERSION); ./configure $(NODEJS_OPTIONS); cd ..
