@@ -1,0 +1,333 @@
+[1238/1238] LINK ./d8
+sed -e 's/^#undef PLV8_VERSION/#define PLV8_VERSION "3.0alpha"/' plv8_config.h.in > plv8_config.h
+g++ -Wall -std=c++11 -fno-rtti -O2  -DJSONB_DIRECT_CONVERSION -Ibuild/v8/include -Ibuild/v8 -std=c++11 -I. -I./ -I/usr/include/postgresql/11/server -I/usr/include/postgresql/internal  -Wdate-time -D_FORTI
+FY_SOURCE=2 -D_GNU_SOURCE -I/usr/include/libxml2  -I/usr/include/mit-krb5 -fPIC -c -o plv8.o plv8.cc
+In file included from plv8.cc:8:0:
+plv8.h: In constructor ‘WindowFunctionSupport::WindowFunctionSupport(v8::Handle<v8::Context>, FunctionCallInfo)’:
+plv8.h:197:7: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+       v8::String::kInternalizedString)));
+       ^~
+plv8.h: In constructor ‘SRFSupport::SRFSupport(v8::Handle<v8::Context>, Converter*, Tuplestorestate*)’:
+plv8.h:237:6: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+      v8::String::kInternalizedString)));
+      ^~
+plv8.cc: In function ‘Datum CallSRFunction(FunctionCallInfo, plv8_exec_env*, int, plv8_type*, plv8_type*)’:
+plv8.cc:779:29: error: no matching function for call to ‘v8::Array::Get(int&)’
+    conv.ToDatum(array->Get(i), tupstore);
+                             ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:3374:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, v8::Local<v8::Value>)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3374:43: note:   candidate expects 2 arguments, 1 provided
+build/v8/include/v8.h:3377:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, uint32_t)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3377:43: note:   candidate expects 2 arguments, 1 provided
+plv8.cc: In function ‘Datum CallTrigger(FunctionCallInfo, plv8_exec_env*)’:
+plv8.cc:856:55: error: no match for ‘operator=’ (operand types are ‘v8::Handle<v8::Value> {aka v8::Local<v8::Value>}’ and ‘v8::MaybeLocal<v8::String>’)
+   args[3] = String::NewFromUtf8(plv8_isolate, "BEFORE");
+                                                       ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(const v8::Local<v8::Value>&)
+ class Local {
+       ^~~~~
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘const v8::Local<v8::Value>&’
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(v8::Local<v8::Value>&&)
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘v8::Local<v8::Value>&&’
+
+
+plv8.cc:858:54: error: no match for ‘operator=’ (operand types are ‘v8::Handle<v8::Value> {aka v8::Local<v8::Value>}’ and ‘v8::MaybeLocal<v8::String>’)                                           [228/1390]
+   args[3] = String::NewFromUtf8(plv8_isolate, "AFTER");
+                                                      ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(const v8::Local<v8::Value>&)
+ class Local {
+       ^~~~~
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘const v8::Local<v8::Value>&’
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(v8::Local<v8::Value>&&)
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘v8::Local<v8::Value>&&’
+plv8.cc:862:52: error: no match for ‘operator=’ (operand types are ‘v8::Handle<v8::Value> {aka v8::Local<v8::Value>}’ and ‘v8::MaybeLocal<v8::String>’)
+   args[4] = String::NewFromUtf8(plv8_isolate, "ROW");
+                                                    ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(const v8::Local<v8::Value>&)
+ class Local {
+       ^~~~~
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘const v8::Local<v8::Value>&’
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(v8::Local<v8::Value>&&)
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘v8::Local<v8::Value>&&’
+plv8.cc:864:58: error: no match for ‘operator=’ (operand types are ‘v8::Handle<v8::Value> {aka v8::Local<v8::Value>}’ and ‘v8::MaybeLocal<v8::String>’)
+   args[4] = String::NewFromUtf8(plv8_isolate, "STATEMENT");
+                                                          ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(const v8::Local<v8::Value>&)
+ class Local {
+       ^~~~~
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘const v8::Local<v8::Value>&’
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(v8::Local<v8::Value>&&)
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘v8::Local<v8::Value>&&’
+plv8.cc:868:55: error: no match for ‘operator=’ (operand types are ‘v8::Handle<v8::Value> {aka v8::Local<v8::Value>}’ and ‘v8::MaybeLocal<v8::String>’)
+   args[5] = String::NewFromUtf8(plv8_isolate, "INSERT");
+                                                       ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(const v8::Local<v8::Value>&)
+ class Local {
+       ^~~~~
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘const v8::Local<v8::Value>&’
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(v8::Local<v8::Value>&&)
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘v8::Local<v8::Value>&&’
+plv8.cc:870:55: error: no match for ‘operator=’ (operand types are ‘v8::Handle<v8::Value> {aka v8::Local<v8::Value>}’ and ‘v8::MaybeLocal<v8::String>’)
+   args[5] = String::NewFromUtf8(plv8_isolate, "DELETE");
+                                                       ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(const v8::Local<v8::Value>&)
+ class Local {
+       ^~~~~
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘const v8::Local<v8::Value>&’
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(v8::Local<v8::Value>&&)
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘v8::Local<v8::Value>&&’
+plv8.cc:872:55: error: no match for ‘operator=’ (operand types are ‘v8::Handle<v8::Value> {aka v8::Local<v8::Value>}’ and ‘v8::MaybeLocal<v8::String>’)
+   args[5] = String::NewFromUtf8(plv8_isolate, "UPDATE");
+
+
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(const v8::Local<v8::Value>&)
+ class Local {
+       ^~~~~
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘const v8::Local<v8::Value>&’
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(v8::Local<v8::Value>&&)
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘v8::Local<v8::Value>&&’
+plv8.cc:875:57: error: no match for ‘operator=’ (operand types are ‘v8::Handle<v8::Value> {aka v8::Local<v8::Value>}’ and ‘v8::MaybeLocal<v8::String>’)
+   args[5] = String::NewFromUtf8(plv8_isolate, "TRUNCATE");
+                                                         ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(const v8::Local<v8::Value>&)
+ class Local {
+       ^~~~~
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘const v8::Local<v8::Value>&’
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(v8::Local<v8::Value>&&)
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘v8::Local<v8::Value>&&’
+plv8.cc:878:50: error: no match for ‘operator=’ (operand types are ‘v8::Handle<v8::Value> {aka v8::Local<v8::Value>}’ and ‘v8::MaybeLocal<v8::String>’)
+   args[5] = String::NewFromUtf8(plv8_isolate, "?");
+                                                  ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(const v8::Local<v8::Value>&)
+ class Local {
+       ^~~~~
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘const v8::Local<v8::Value>&’
+build/v8/include/v8.h:182:7: note: candidate: v8::Local<v8::Value>& v8::Local<v8::Value>::operator=(v8::Local<v8::Value>&&)
+build/v8/include/v8.h:182:7: note:   no known conversion for argument 1 from ‘v8::MaybeLocal<v8::String>’ to ‘v8::Local<v8::Value>&&’
+plv8.cc:892:55: error: no matching function for call to ‘v8::Array::Set(int&, v8::Local<v8::String>)’
+   tgargs->Set(i, ToString(trig->tg_trigger->tgargs[i]));
+                                                       ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:3327:37: note: candidate: v8::Maybe<bool> v8::Object::Set(v8::Local<v8::Context>, v8::Local<v8::Value>, v8::Local<v8::Value>)
+   V8_WARN_UNUSED_RESULT Maybe<bool> Set(Local<Context> context,
+                                     ^~~
+build/v8/include/v8.h:3327:37: note:   candidate expects 3 arguments, 2 provided
+build/v8/include/v8.h:3330:37: note: candidate: v8::Maybe<bool> v8::Object::Set(v8::Local<v8::Context>, uint32_t, v8::Local<v8::Value>)
+   V8_WARN_UNUSED_RESULT Maybe<bool> Set(Local<Context> context, uint32_t index,
+                                     ^~~
+build/v8/include/v8.h:3330:37: note:   candidate expects 3 arguments, 2 provided
+plv8.cc: In function ‘char* CompileDialect(const char*, Dialect)’:
+plv8.cc:1250:60: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+    key = String::NewFromUtf8(plv8_isolate, "CoffeeScript", String::kInternalizedString);
+                                                            ^~~~~~
+plv8.cc:1256:58: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+    key = String::NewFromUtf8(plv8_isolate, "LiveScript", String::kInternalizedString);
+                                                          ^~~~~~
+plv8.cc:1263:28: error: no matching function for call to ‘v8::Object::Get(v8::Local<v8::String>&)’
+  if (ctx->Global()->Get(key)->IsUndefined())
+                            ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:3374:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, v8::Local<v8::Value>)
+
+
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,                                                                                                                            [114/1390]
+                                           ^~~
+build/v8/include/v8.h:3374:43: note:   candidate expects 2 arguments, 1 provided
+build/v8/include/v8.h:3377:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, uint32_t)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3377:43: note:   candidate expects 2 arguments, 1 provided
+plv8.cc:1279:69: error: no matching function for call to ‘v8::Object::Get(v8::Local<v8::String>&)’
+  Local<Object> compiler = Local<Object>::Cast(ctx->Global()->Get(key));
+                                                                     ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:3374:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, v8::Local<v8::Value>)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3374:43: note:   candidate expects 2 arguments, 1 provided
+build/v8/include/v8.h:3377:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, uint32_t)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3377:43: note:   candidate expects 2 arguments, 1 provided
+plv8.cc:1281:63: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+    compiler->Get(String::NewFromUtf8(plv8_isolate, "compile", String::kInternalizedString)));
+                                                               ^~~~~~
+plv8.cc: In function ‘v8::Local<v8::ObjectTemplate> GetGlobalObjectTemplate()’:
+plv8.cc:1690:58: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG5", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG5));
+                                                          ^~~~~~
+plv8.cc:1691:58: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG4", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG4));
+                                                          ^~~~~~
+plv8.cc:1692:58: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG3", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG3));
+                                                          ^~~~~~
+plv8.cc:1693:58: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG2", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG2));
+                                                          ^~~~~~
+plv8.cc:1694:58: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG1", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG1));
+                                                          ^~~~~~
+plv8.cc:1695:57: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG5));
+                                                         ^~~~~~
+plv8.cc:1696:55: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   templ->Set(String::NewFromUtf8(plv8_isolate, "LOG", String::kInternalizedString), Int32::New(plv8_isolate, LOG));
+                                                       ^~~~~~
+plv8.cc:1697:56: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   templ->Set(String::NewFromUtf8(plv8_isolate, "INFO", String::kInternalizedString), Int32::New(plv8_isolate, INFO));
+                                                        ^~~~~~
+plv8.cc:1698:58: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   templ->Set(String::NewFromUtf8(plv8_isolate, "NOTICE", String::kInternalizedString), Int32::New(plv8_isolate, NOTICE));
+                                                          ^~~~~~
+plv8.cc:1699:59: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   templ->Set(String::NewFromUtf8(plv8_isolate, "WARNING", String::kInternalizedString), Int32::New(plv8_isolate, WARNING));
+                                                           ^~~~~~
+plv8.cc:1700:57: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   templ->Set(String::NewFromUtf8(plv8_isolate, "ERROR", String::kInternalizedString), Int32::New(plv8_isolate, ERROR));
+                                                         ^~~~~~
+plv8.cc:1706:58: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+
+
+   plv8->Set(String::NewFromUtf8(plv8_isolate, "version", String::kInternalizedString), String::NewFromUtf8(plv8_isolate, PLV8_VERSION));
+                                                          ^~~~~~
+plv8.cc:1707:61: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   plv8->Set(String::NewFromUtf8(plv8_isolate, "v8_version", String::kInternalizedString), String::NewFromUtf8(plv8_isolate, V8_VERSION_STRING));
+                                                             ^~~~~~
+plv8.cc:1709:56: error: ‘kInternalizedString’ is not a member of ‘v8::String’
+   templ->Set(String::NewFromUtf8(plv8_isolate, "plv8", String::kInternalizedString), plv8);
+                                                        ^~~~~~
+plv8.cc: In member function ‘v8::Local<v8::Object> Converter::ToValue(HeapTuple)’:
+plv8.cc:1836:67: error: no matching function for call to ‘v8::Object::Set(__gnu_cxx::__alloc_traits<std::allocator<v8::Local<v8::String> > >::value_type&, v8::Local<v8::Value>)’
+   obj->Set(m_colnames[c], ::ToValue(datum, isnull, &m_coltypes[c]));
+                                                                   ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:3327:37: note: candidate: v8::Maybe<bool> v8::Object::Set(v8::Local<v8::Context>, v8::Local<v8::Value>, v8::Local<v8::Value>)
+   V8_WARN_UNUSED_RESULT Maybe<bool> Set(Local<Context> context,
+                                     ^~~
+build/v8/include/v8.h:3327:37: note:   candidate expects 3 arguments, 2 provided
+build/v8/include/v8.h:3330:37: note: candidate: v8::Maybe<bool> v8::Object::Set(v8::Local<v8::Context>, uint32_t, v8::Local<v8::Value>)
+   V8_WARN_UNUSED_RESULT Maybe<bool> Set(Local<Context> context, uint32_t index,
+                                     ^~~
+build/v8/include/v8.h:3330:37: note:   candidate expects 3 arguments, 2 provided
+plv8.cc: In member function ‘Datum Converter::ToDatum(v8::Handle<v8::Value>, Tuplestorestate*)’:
+plv8.cc:1878:31: error: no matching function for call to ‘v8::Array::Get(int&)’
+     CString fname(names->Get(d));
+                               ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:3374:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, v8::Local<v8::Value>)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3374:43: note:   candidate expects 2 arguments, 1 provided
+build/v8/include/v8.h:3377:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, uint32_t)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3377:43: note:   candidate expects 2 arguments, 1 provided
+plv8.cc:1903:72: error: no matching function for call to ‘v8::Object::Get(__gnu_cxx::__alloc_traits<std::allocator<v8::Local<v8::String> > >::value_type&)’
+   Handle<v8::Value> attr = m_is_scalar ? value : obj->Get(m_colnames[c]);
+                                                                        ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:3374:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, v8::Local<v8::Value>)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3374:43: note:   candidate expects 2 arguments, 1 provided
+build/v8/include/v8.h:3377:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, uint32_t)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3377:43: note:   candidate expects 2 arguments, 1 provided
+plv8.cc: In constructor ‘js_error::js_error(v8::TryCatch&)’:
+plv8.cc:1955:72: error: no matching function for call to ‘v8::Value::ToObject(v8::Isolate*&)’
+   Handle<v8::Object> err = try_catch.Exception()->ToObject(plv8_isolate);
+                                                                        ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+
+
+build/v8/include/v8.h:2534:44: note: candidate: v8::MaybeLocal<v8::Object> v8::Value::ToObject(v8::Local<v8::Context>) const
+   V8_WARN_UNUSED_RESULT MaybeLocal<Object> ToObject(
+                                            ^~~~~~~~
+build/v8/include/v8.h:2534:44: note:   no known conversion for argument 1 from ‘v8::Isolate*’ to ‘v8::Local<v8::Context>’
+plv8.cc:1965:85: error: no matching function for call to ‘v8::Object::Get(v8::MaybeLocal<v8::String>)’
+    v8::Local<v8::Value> errCode = err->Get(String::NewFromUtf8(plv8_isolate, "code"));
+                                                                                     ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:3374:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, v8::Local<v8::Value>)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3374:43: note:   candidate expects 2 arguments, 1 provided
+build/v8/include/v8.h:3377:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, uint32_t)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3377:43: note:   candidate expects 2 arguments, 1 provided
+plv8.cc:1972:89: error: no matching function for call to ‘v8::Object::Get(v8::MaybeLocal<v8::String>)’
+    v8::Local<v8::Value> errDetail = err->Get(String::NewFromUtf8(plv8_isolate, "detail"));
+                                                                                         ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:3374:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, v8::Local<v8::Value>)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3374:43: note:   candidate expects 2 arguments, 1 provided
+build/v8/include/v8.h:3377:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, uint32_t)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3377:43: note:   candidate expects 2 arguments, 1 provided
+plv8.cc:1980:85: error: no matching function for call to ‘v8::Object::Get(v8::MaybeLocal<v8::String>)’
+    v8::Local<v8::Value> errHint = err->Get(String::NewFromUtf8(plv8_isolate, "hint"));
+                                                                                     ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:3374:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, v8::Local<v8::Value>)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3374:43: note:   candidate expects 2 arguments, 1 provided
+build/v8/include/v8.h:3377:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, uint32_t)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3377:43: note:   candidate expects 2 arguments, 1 provided
+plv8.cc:1988:91: error: no matching function for call to ‘v8::Object::Get(v8::MaybeLocal<v8::String>)’
+    v8::Local<v8::Value> errContext = err->Get(String::NewFromUtf8(plv8_isolate, "context"));
+                                                                                           ^
+In file included from plv8.h:12:0,
+                 from plv8.cc:8:
+build/v8/include/v8.h:3374:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, v8::Local<v8::Value>)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3374:43: note:   candidate expects 2 arguments, 1 provided
+build/v8/include/v8.h:3377:43: note: candidate: v8::MaybeLocal<v8::Value> v8::Object::Get(v8::Local<v8::Context>, uint32_t)
+   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Get(Local<Context> context,
+                                           ^~~
+build/v8/include/v8.h:3377:43: note:   candidate expects 2 arguments, 1 provided
+Makefile.shared:97: recipe for target 'plv8.o' failed
+make: *** [plv8.o] Error 1
