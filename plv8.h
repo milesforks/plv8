@@ -190,11 +190,24 @@ public:
 		m_winobj = PG_WINDOW_OBJECT();
 		if (WindowObjectIsValid(m_winobj))
 		{
+
+			/*
 			m_plv8obj = v8::Handle<v8::Object>::Cast(
 					context->Global()->Get(v8::String::NewFromUtf8(
 						context->GetIsolate(),
 						"plv8",
 						v8::String::kInternalizedString)));
+			*/
+
+			m_plv8obj = v8::Handle<v8::Object>::Cast(
+					context->Global()->Get(context, v8::String::NewFromUtf8(
+						context->GetIsolate(),
+						"plv8",
+						v8::NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>())  ).FromMaybe(v8::Local<v8::Value>()));
+
+			// m_plv8obj = context->Global()->Get(context,
+			// 	v8::String::NewFromUtf8(context->GetIsolate(), "plv8", v8::NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>())
+			// 	).FromMaybe(v8::Handle<v8::Object>());
 			if (m_plv8obj.IsEmpty())
 				throw js_error("plv8 object not found");
 			/* Stash the current item, just in case of nested call */
@@ -230,11 +243,8 @@ public:
 	SRFSupport(v8::Handle<v8::Context> context,
 			   Converter *conv, Tuplestorestate *tupstore)
 	{
-		m_plv8obj = v8::Handle<v8::Object>::Cast(
-				context->Global()->Get(v8::String::NewFromUtf8(
-					context->GetIsolate(),
-					"plv8",
-					v8::String::kInternalizedString)));
+		m_plv8obj = v8::Handle<v8::Object>::Cast(context->Global()->Get(context,
+			v8::String::NewFromUtf8(context->GetIsolate(), "plv8", v8::NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>())).FromMaybe(v8::Handle<v8::Value>()));
 		if (m_plv8obj.IsEmpty())
 			throw js_error("plv8 object not found");
 		m_prev_conv = m_plv8obj->GetInternalField(PLV8_INTNL_CONV);

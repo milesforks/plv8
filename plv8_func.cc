@@ -95,7 +95,7 @@ static inline void
 SetCallback(Handle<ObjectTemplate> obj, const char *name,
 			FunctionCallback func, PropertyAttribute attr = None)
 {
-	obj->Set(String::NewFromUtf8(plv8_isolate, name, String::kInternalizedString),
+	obj->Set(String::NewFromUtf8(plv8_isolate, name, NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>()),
 				FunctionTemplate::New(plv8_isolate, plv8_FunctionInvoker,
 					WrapCallback(func)), attr);
 }
@@ -134,7 +134,7 @@ SPIResultToValue(int status)
 	Local<v8::Value>	result;
 
 	if (status < 0) {
-		plv8_isolate->ThrowException(String::NewFromUtf8(plv8_isolate, FormatSPIStatus(status)));
+		plv8_isolate->ThrowException(String::NewFromUtf8(plv8_isolate, FormatSPIStatus(status)).FromMaybe(v8::Local<v8::String>()));
 		return result;
 	}
 
@@ -150,7 +150,7 @@ SPIResultToValue(int status)
 		Local<Array>	rows = Array::New(plv8_isolate, nrows);
 
 		for (int r = 0; r < nrows; r++)
-			rows->Set(r, conv.ToValue(SPI_tuptable->vals[r]));
+			rows->Set(plv8_isolate->GetCurrentContext(), r, conv.ToValue(SPI_tuptable->vals[r]));
 
 		result = rows;
 		break;
@@ -196,7 +196,8 @@ JSONObject::JSONObject()
 {
 	Handle<Context> context = plv8_isolate->GetCurrentContext();
 	Handle<Object> global = context->Global();
-	MaybeLocal<v8::Object> maybeJson = global->Get(String::NewFromUtf8(plv8_isolate, "JSON", String::kInternalizedString))->ToObject(plv8_isolate->GetCurrentContext());
+	v8::Local<v8::String> json_key = String::NewFromUtf8(plv8_isolate, "JSON", NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>());
+	MaybeLocal<v8::Object> maybeJson = global->Get(context, json_key).FromMaybe(v8::Local<v8::Value>())->ToObject(context);
 	if (maybeJson.IsEmpty())
 		throw js_error("JSON not found");
 	m_json = maybeJson.ToLocalChecked();
@@ -208,8 +209,16 @@ JSONObject::JSONObject()
 Handle<v8::Value>
 JSONObject::Parse(Handle<v8::Value> str)
 {
-	Handle<Function> parse_func =
-		Handle<Function>::Cast(m_json->Get(String::NewFromUtf8(plv8_isolate, "parse", String::kInternalizedString)));
+	v8::Local<v8::String> parse_key = String::NewFromUtf8(plv8_isolate, "parse", NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>());
+	Handle<Function> parse_func = Handle<Function>::Cast(
+		m_json->Get(plv8_isolate->GetCurrentContext(), parse_key).FromMaybe(v8::Handle<v8::Value>())
+	);
+
+	//if (!m_json->Get(plv8_isolate->GetCurrentContext(), parse_key).ToLocal(&parse_func)) {
+	//	throw js_error("JSON.parse() not found");
+	//}
+
+	//Handle<Function> parse_func = m_json->Get(plv8_isolate->GetCurrentContext(), parse_key).FromMaybe(v8::Handle<Value>());;
 
 	if (parse_func.IsEmpty())
 		throw js_error("JSON.parse() not found");
@@ -227,8 +236,12 @@ JSONObject::Parse(Handle<v8::Value> str)
 Handle<v8::Value>
 JSONObject::Stringify(Handle<v8::Value> val)
 {
-	Handle<Function> stringify_func =
-		Handle<Function>::Cast(m_json->Get(String::NewFromUtf8(plv8_isolate, "stringify", String::kInternalizedString)));
+
+	v8::Local<v8::String> stringify_key = String::NewFromUtf8(plv8_isolate, "stringify", NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>());
+	Handle<Function> stringify_func = Handle<Function>::Cast(
+		m_json->Get(plv8_isolate->GetCurrentContext(), stringify_key).FromMaybe(v8::Handle<v8::Value>())
+	);
+
 
 	if (stringify_func.IsEmpty())
 		throw js_error("JSON.stringify() not found");
@@ -314,18 +327,18 @@ plv8_FunctionInvoker(const FunctionCallbackInfo<v8::Value> &args) throw()
 		FreeErrorData(edata);
 
 		Handle<v8::Object> err = Exception::Error(message)->ToObject(plv8_isolate->GetCurrentContext()).ToLocalChecked();
-		err->Set(String::NewFromUtf8(plv8_isolate, "sqlerrcode"), sqlerrcode);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "sqlerrcode").FromMaybe(v8::Local<v8::String>()), sqlerrcode);
 #if PG_VERSION_NUM >= 90300
-		err->Set(String::NewFromUtf8(plv8_isolate, "schema_name"), schema_name);
-		err->Set(String::NewFromUtf8(plv8_isolate, "table_name"), table_name);
-		err->Set(String::NewFromUtf8(plv8_isolate, "column_name"), column_name);
-		err->Set(String::NewFromUtf8(plv8_isolate, "datatype_name"), datatype_name);
-		err->Set(String::NewFromUtf8(plv8_isolate, "constraint_name"), constraint_name);
-		err->Set(String::NewFromUtf8(plv8_isolate, "detail"), detail);
-		err->Set(String::NewFromUtf8(plv8_isolate, "hint"), hint);
-		err->Set(String::NewFromUtf8(plv8_isolate, "context"), context);
-		err->Set(String::NewFromUtf8(plv8_isolate, "internalquery"), internalquery);
-		err->Set(String::NewFromUtf8(plv8_isolate, "code"), code);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "schema_name").FromMaybe(v8::Local<v8::String>()), schema_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "table_name").FromMaybe(v8::Local<v8::String>()), table_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "column_name").FromMaybe(v8::Local<v8::String>()), column_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "datatype_name").FromMaybe(v8::Local<v8::String>()), datatype_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "constraint_name").FromMaybe(v8::Local<v8::String>()), constraint_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "detail").FromMaybe(v8::Local<v8::String>()), detail);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "hint").FromMaybe(v8::Local<v8::String>()), hint);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "context").FromMaybe(v8::Local<v8::String>()), context);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "internalquery").FromMaybe(v8::Local<v8::String>()), internalquery);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "code").FromMaybe(v8::Local<v8::String>()), code);
 #endif
 
 		args.GetReturnValue().Set(plv8_isolate->ThrowException(err));
@@ -341,7 +354,7 @@ plv8_Elog(const FunctionCallbackInfo<v8::Value>& args)
 	MemoryContext	ctx = CurrentMemoryContext;
 
 	if (args.Length() < 2) {
-		args.GetReturnValue().Set(plv8_isolate->ThrowException(String::NewFromUtf8(plv8_isolate, "usage: plv8.elog(elevel, ...)")));
+		args.GetReturnValue().Set(plv8_isolate->ThrowException(String::NewFromUtf8(plv8_isolate, "usage: plv8.elog(elevel, ...)").FromMaybe(v8::Local<v8::String>())   ));
 		return;
 	}
 
@@ -360,7 +373,7 @@ plv8_Elog(const FunctionCallbackInfo<v8::Value>& args)
 	case ERROR:
 		break;
 	default:
-		args.GetReturnValue().Set(plv8_isolate->ThrowException(String::NewFromUtf8(plv8_isolate, "invalid error level")));
+		args.GetReturnValue().Set(plv8_isolate->ThrowException(String::NewFromUtf8(plv8_isolate, "invalid error level").FromMaybe(v8::Local<v8::String>())  ));
 		return;
 	}
 
@@ -460,7 +473,9 @@ plv8_execute_params(const char *sql, Handle<Array> params)
 				parstate.numParams, nparam);
 	for (int i = 0; i < nparam; i++)
 	{
-		Handle<v8::Value>	param = params->Get(i);
+		v8::Handle<v8::Value>	param = params->Get(plv8_isolate->GetCurrentContext(), i).FromMaybe(v8::Handle<v8::Value>());
+		if (param.IsEmpty())
+			elog(ERROR, "parameter[%d] is empty", i);
 		values[i] = value_get_datum(param,
 								  parstate.paramTypes[i], &nulls[i]);
 	}
@@ -471,13 +486,14 @@ plv8_execute_params(const char *sql, Handle<Array> params)
 
 	for (int i = 0; i < nparam; i++)
 	{
-		Handle<v8::Value>	param = params->Get(i);
-
+		v8::Handle<v8::Value>	param = params->Get(plv8_isolate->GetCurrentContext(), i).FromMaybe(v8::Handle<v8::Value>());
+		if (param.IsEmpty())
+			elog(ERROR, "parameter[%d] is empty", i);
 		types[i] = inferred_datum_type(param);
 		if (types[i] == InvalidOid)
 			elog(ERROR, "parameter[%d] cannot translate to a database type", i);
 
-		values[i] = value_get_datum(param, types[i], &nulls[i]);
+		values[i] = value_get_datum(param.FromMaybe(Handle<v8::Array>()), types[i], &nulls[i]);
 	}
 	status = SPI_execute_with_args(sql, nparam, types, values, nulls, false, 0);
 
@@ -495,7 +511,7 @@ convertArgsToArray(const FunctionCallbackInfo<v8::Value> &args, int start, int d
 	Local<Array> result = Array::New(plv8_isolate, args.Length() - start);
 	for (int i = start; i < args.Length(); i++)
 	{
-		result->Set(i - downshift, args[i]);
+		result->Set(plv8_isolate->GetCurrentContext(), i - downshift, args[i]);
 	}
 	return result;
 }
@@ -574,7 +590,7 @@ plv8_Prepare(const FunctionCallbackInfo<v8::Value> &args)
 
 	for (int i = 0; i < arraylen; i++)
 	{
-		CString			typestr(array->Get(i));
+		CString			typestr(array->Get(plv8_isolate->GetCurrentContext(), i).FromMaybe(v8::Local<v8::Value>()));
 		int32			typemod;
 
 #if PG_VERSION_NUM >= 90400
@@ -610,7 +626,7 @@ plv8_Prepare(const FunctionCallbackInfo<v8::Value> &args)
 	if (PlanTemplate.IsEmpty())
 	{
 		Local<FunctionTemplate> base = FunctionTemplate::New(plv8_isolate);
-		base->SetClassName(String::NewFromUtf8(plv8_isolate, "PreparedPlan", String::kInternalizedString));
+		base->SetClassName(String::NewFromUtf8(plv8_isolate, "PreparedPlan", NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>()));
 		Local<ObjectTemplate> templ = base->InstanceTemplate();
 		templ->SetInternalFieldCount(2);
 		SetCallback(templ, "cursor", plv8_PlanCursor);
@@ -693,8 +709,11 @@ plv8_PlanCursor(const FunctionCallbackInfo<v8::Value> &args)
 
 	for (int i = 0; i < nparam; i++)
 	{
-		Handle<v8::Value>	param = params->Get(i);
+		v8::Handle<v8::Value>	param = params->Get(plv8_isolate->GetCurrentContext(), i).FromMaybe(v8::Handle<v8::Value>());
 		Oid					typid;
+
+		if (param.IsEmpty())
+			throw js_error("empty param");
 
 		if (parstate)
 			typid = parstate->paramTypes[i];
@@ -732,7 +751,7 @@ plv8_PlanCursor(const FunctionCallbackInfo<v8::Value> &args)
 	if (CursorTemplate.IsEmpty())
 	{
 		Local<FunctionTemplate> base = FunctionTemplate::New(plv8_isolate);
-		base->SetClassName(String::NewFromUtf8(plv8_isolate, "Cursor", String::kInternalizedString));
+		base->SetClassName(String::NewFromUtf8(plv8_isolate, "Cursor", NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>()));
 		Local<ObjectTemplate> templ = base->InstanceTemplate();
 		templ->SetInternalFieldCount(1);
 		SetCallback(templ, "fetch", plv8_CursorFetch);
@@ -806,8 +825,12 @@ plv8_PlanExecute(const FunctionCallbackInfo<v8::Value> &args)
 
 	for (int i = 0; i < nparam; i++)
 	{
-		Handle<v8::Value>	param = params->Get(i);
+		v8::Handle<v8::Value>	param = params->Get(plv8_isolate->GetCurrentContext(), i).FromMaybe(v8::Handle<v8::Value>());
 		Oid					typid;
+
+		if (param.IsEmpty()) {
+			throw js_error("empty param");
+		}
 
 		if (parstate)
 			typid = parstate->paramTypes[i];
@@ -926,7 +949,7 @@ plv8_CursorFetch(const FunctionCallbackInfo<v8::Value> &args)
 		{
 			Handle<Array> array = Array::New(plv8_isolate);
 			for (unsigned int i = 0; i < SPI_processed; i++)
-				array->Set(i, conv.ToValue(SPI_tuptable->vals[i]));
+				array->Set(plv8_isolate->GetCurrentContext(), i, conv.ToValue(SPI_tuptable->vals[i]));
 			args.GetReturnValue().Set(array);
 			SPI_freetuptable(SPI_tuptable);
 			return;
@@ -1152,7 +1175,7 @@ plv8_GetWindowObject(const FunctionCallbackInfo<v8::Value>& args)
 	{
 		/* Initialize it if we haven't yet. */
 		Local<FunctionTemplate> base = FunctionTemplate::New(plv8_isolate);
-		base->SetClassName(String::NewFromUtf8(plv8_isolate, "WindowObject", String::kInternalizedString));
+		base->SetClassName(String::NewFromUtf8(plv8_isolate, "WindowObject", NewStringType::kInternalized).FromMaybe(v8::Local<String>()));
 		Local<ObjectTemplate> templ = base->InstanceTemplate();
 
 		/* We store fcinfo here. */
@@ -1170,9 +1193,9 @@ plv8_GetWindowObject(const FunctionCallbackInfo<v8::Value>& args)
 		SetCallback(templ, "get_func_arg_current", plv8_WinGetFuncArgCurrent);
 
 		/* Constants for get_func_in_XXX() */
-		templ->Set(String::NewFromUtf8(plv8_isolate, "SEEK_CURRENT", String::kInternalizedString), Int32::New(plv8_isolate, WINDOW_SEEK_CURRENT));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "SEEK_HEAD", String::kInternalizedString), Int32::New(plv8_isolate, WINDOW_SEEK_HEAD));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "SEEK_TAIL", String::kInternalizedString), Int32::New(plv8_isolate, WINDOW_SEEK_TAIL));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "SEEK_CURRENT", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, WINDOW_SEEK_CURRENT));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "SEEK_HEAD", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, WINDOW_SEEK_HEAD));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "SEEK_TAIL", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, WINDOW_SEEK_TAIL));
 
 		WindowObjectTemplate.Reset(plv8_isolate, templ);
 	}
@@ -1430,7 +1453,7 @@ plv8_WinGetFuncArgInPartition(const FunctionCallbackInfo<v8::Value>& args)
 	int			argno = args[0]->Int32Value(plv8_isolate->GetCurrentContext()).ToChecked();
 	int			relpos = args[1]->Int32Value(plv8_isolate->GetCurrentContext()).ToChecked();
 	int			seektype = args[2]->Int32Value(plv8_isolate->GetCurrentContext()).ToChecked();
-	bool		set_mark = args[3]->BooleanValue(plv8_isolate->GetCurrentContext()).ToChecked();
+	bool		set_mark = args[3]->BooleanValue(plv8_isolate);
 	bool		isnull, isout;
 	Datum		res;
 
@@ -1474,7 +1497,7 @@ plv8_WinGetFuncArgInFrame(const FunctionCallbackInfo<v8::Value>& args)
 	int			argno = args[0]->Int32Value(plv8_isolate->GetCurrentContext()).ToChecked();
 	int			relpos = args[1]->Int32Value(plv8_isolate->GetCurrentContext()).ToChecked();
 	int			seektype = args[2]->Int32Value(plv8_isolate->GetCurrentContext()).ToChecked();
-	bool		set_mark = args[3]->BooleanValue(plv8_isolate->GetCurrentContext()).ToChecked();
+	bool		set_mark = args[3]->BooleanValue(plv8_isolate);
 	bool		isnull, isout;
 	Datum		res;
 
@@ -1634,9 +1657,9 @@ plv8_MemoryUsage(const FunctionCallbackInfo<v8::Value>& args)
 	Local<v8::Value> used = Local<v8::Value>::New(plv8_isolate, Number::New(plv8_isolate, v8_heap_stats.used_heap_size()));
 	Local<v8::Value> external = Local<v8::Value>::New(plv8_isolate, Number::New(plv8_isolate, v8_heap_stats.external_memory()));
 
-	obj->Set(String::NewFromUtf8(plv8_isolate, "total_heap_size"), total);
-	obj->Set(String::NewFromUtf8(plv8_isolate, "used_heap_size"), used);
-	obj->Set(String::NewFromUtf8(plv8_isolate, "external_memory"), external);
+	obj->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "total_heap_size").FromMaybe(v8::Local<String>()), total);
+	obj->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "used_heap_size").FromMaybe(v8::Local<String>()), used);
+	obj->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "external_memory").FromMaybe(v8::Local<String>()), external);
 
 	result = obj;
 	args.GetReturnValue().Set(result);

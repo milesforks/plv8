@@ -766,6 +766,8 @@ CallSRFunction(PG_FUNCTION_ARGS, plv8_exec_env *xenv,
 
 	Handle<v8::Value> result = DoCall(context, fn, recv, nargs, args);
 
+	MaybeLocal<v8::Value> maybeRecord;
+
 	if (result->IsUndefined())
 	{
 		// no additional values
@@ -775,8 +777,13 @@ CallSRFunction(PG_FUNCTION_ARGS, plv8_exec_env *xenv,
 		Handle<Array> array = Handle<Array>::Cast(result);
 		// return an array of records.
 		int	length = array->Length();
-		for (int i = 0; i < length; i++)
-			conv.ToDatum(array->Get(i), tupstore);
+		for (int i = 0; i < length; i++) {
+			if (maybeRecord.IsEmpty()) {
+				throw js_error("empty record");
+			}
+			conv.ToDatum(array->Get(context, i).FromMaybe(v8::Local<v8::Value>()), tupstore);
+		}
+
 	}
 	else
 	{
@@ -853,29 +860,29 @@ CallTrigger(PG_FUNCTION_ARGS, plv8_exec_env *xenv)
 
 	// 3: TG_WHEN
 	if (TRIGGER_FIRED_BEFORE(event))
-		args[3] = String::NewFromUtf8(plv8_isolate, "BEFORE");
+		args[3] = String::NewFromUtf8(plv8_isolate, "BEFORE").FromMaybe(v8::Local<String>());
 	else
-		args[3] = String::NewFromUtf8(plv8_isolate, "AFTER");
+		args[3] = String::NewFromUtf8(plv8_isolate, "AFTER").FromMaybe(v8::Local<String>());
 
 	// 4: TG_LEVEL
 	if (TRIGGER_FIRED_FOR_ROW(event))
-		args[4] = String::NewFromUtf8(plv8_isolate, "ROW");
+		args[4] = String::NewFromUtf8(plv8_isolate, "ROW").FromMaybe(v8::Local<String>());
 	else
-		args[4] = String::NewFromUtf8(plv8_isolate, "STATEMENT");
+		args[4] = String::NewFromUtf8(plv8_isolate, "STATEMENT").FromMaybe(v8::Local<String>());
 
 	// 5: TG_OP
 	if (TRIGGER_FIRED_BY_INSERT(event))
-		args[5] = String::NewFromUtf8(plv8_isolate, "INSERT");
+		args[5] = String::NewFromUtf8(plv8_isolate, "INSERT").FromMaybe(v8::Local<String>());
 	else if (TRIGGER_FIRED_BY_DELETE(event))
-		args[5] = String::NewFromUtf8(plv8_isolate, "DELETE");
+		args[5] = String::NewFromUtf8(plv8_isolate, "DELETE").FromMaybe(v8::Local<String>());
 	else if (TRIGGER_FIRED_BY_UPDATE(event))
-		args[5] = String::NewFromUtf8(plv8_isolate, "UPDATE");
+		args[5] = String::NewFromUtf8(plv8_isolate, "UPDATE").FromMaybe(v8::Local<String>());
 #ifdef TRIGGER_FIRED_BY_TRUNCATE
 	else if (TRIGGER_FIRED_BY_TRUNCATE(event))
-		args[5] = String::NewFromUtf8(plv8_isolate, "TRUNCATE");
+		args[5] = String::NewFromUtf8(plv8_isolate, "TRUNCATE").FromMaybe(v8::Local<String>());
 #endif
 	else
-		args[5] = String::NewFromUtf8(plv8_isolate, "?");
+		args[5] = String::NewFromUtf8(plv8_isolate, "?").FromMaybe(v8::Local<String>());
 
 	// 6: TG_RELID
 	args[6] = Uint32::New(plv8_isolate, RelationGetRelid(rel));
@@ -889,7 +896,7 @@ CallTrigger(PG_FUNCTION_ARGS, plv8_exec_env *xenv)
 	// 9: TG_ARGV
 	Handle<Array> tgargs = Array::New(plv8_isolate, trig->tg_trigger->tgnargs);
 	for (int i = 0; i < trig->tg_trigger->tgnargs; i++)
-		tgargs->Set(i, ToString(trig->tg_trigger->tgargs[i]));
+		tgargs->Set(plv8_isolate->GetCurrentContext(), i, ToString(trig->tg_trigger->tgargs[i]));
 	args[9] = tgargs;
 
 	TryCatch			try_catch(plv8_isolate);
@@ -1229,79 +1236,85 @@ CreateExecEnv(Handle<Function> function)
 static char *
 CompileDialect(const char *src, Dialect dialect)
 {
-	HandleScope		handle_scope(plv8_isolate);
-	static Persistent<Context>	context;
-	if (context.IsEmpty()) {
-	   Local<Context> ctx = Context::New(plv8_isolate, (ExtensionConfiguration*)NULL);
-	   context.Reset(plv8_isolate, ctx);
-	}
-	Local<Context> ctx = Local<Context>::New(plv8_isolate, context);
-	Context::Scope	context_scope(ctx);
-	TryCatch		try_catch(plv8_isolate);
-	Local<String>	key;
-	char		   *cresult;
-	const char	   *dialect_binary_data;
+	throw js_error("only javascript is supported");
 
-	switch (dialect)
-	{
-		case PLV8_DIALECT_COFFEE:
-			if (coffee_script_binary_data[0] == '\0')
-				throw js_error("CoffeeScript is not enabled");
-			key = String::NewFromUtf8(plv8_isolate, "CoffeeScript", String::kInternalizedString);
-			dialect_binary_data = (const char *) coffee_script_binary_data;
-			break;
-		case PLV8_DIALECT_LIVESCRIPT:
-			if (livescript_binary_data[0] == '\0')
-				throw js_error("LiveScript is not enabled");
-			key = String::NewFromUtf8(plv8_isolate, "LiveScript", String::kInternalizedString);
-			dialect_binary_data = (const char *) livescript_binary_data;
-			break;
-		default:
-			throw js_error("Unknown Dialect");
-	}
 
-	if (ctx->Global()->Get(key)->IsUndefined())
-	{
-		HandleScope		handle_scope(plv8_isolate);
-		v8::ScriptOrigin origin(key);
-		v8::Local<v8::Script> script;
-		if (!Script::Compile(plv8_isolate->GetCurrentContext(), ToString(dialect_binary_data), &origin).ToLocal(&script))
-			throw js_error(try_catch);
-		if (script.IsEmpty())
-			throw js_error(try_catch);
-		v8::Local<v8::Value> result;
-		if (!script->Run(plv8_isolate->GetCurrentContext()).ToLocal(&result))
-			throw js_error(try_catch);
-		if (result.IsEmpty())
-			throw js_error(try_catch);
-	}
 
-	Local<Object>	compiler = Local<Object>::Cast(ctx->Global()->Get(key));
-	Local<Function>	func = Local<Function>::Cast(
-			compiler->Get(String::NewFromUtf8(plv8_isolate, "compile", String::kInternalizedString)));
-	const int		nargs = 1;
-	Handle<v8::Value>	args[nargs];
+	// HandleScope		handle_scope(plv8_isolate);
+	// static Persistent<Context>	context;
+	// if (context.IsEmpty()) {
+	//    Local<Context> ctx = Context::New(plv8_isolate, (ExtensionConfiguration*)NULL);
+	//    context.Reset(plv8_isolate, ctx);
+	// }
+	// Local<Context> ctx = Local<Context>::New(plv8_isolate, context);
+	// Context::Scope	context_scope(ctx);
+	// TryCatch		try_catch(plv8_isolate);
+	// Local<String>	key;
+	// char		   *cresult;
+	// const char	   *dialect_binary_data;
 
-	args[0] = ToString(src);
-	MaybeLocal<v8::Value>	value = func->Call(ctx, compiler, nargs, args);
+	// switch (dialect)
+	// {
+	// 	case PLV8_DIALECT_COFFEE:
+	// 		if (coffee_script_binary_data[0] == '\0')
+	// 			throw js_error("CoffeeScript is not enabled");
+	// 		key = String::NewFromUtf8(plv8_isolate, "CoffeeScript", v8::NewStringType::kInternalized).FromMaybe(v8::Local<String>());
+	// 		dialect_binary_data = (const char *) coffee_script_binary_data;
+	// 		break;
+	// 	case PLV8_DIALECT_LIVESCRIPT:
+	// 		if (livescript_binary_data[0] == '\0')
+	// 			throw js_error("LiveScript is not enabled");
+	// 		key = String::NewFromUtf8(plv8_isolate, "LiveScript", v8::NewStringType::kInternalized).FromMaybe(v8::Local<String>());
+	// 		dialect_binary_data = (const char *) livescript_binary_data;
+	// 		break;
+	// 	default:
+	// 		throw js_error("Unknown Dialect");
+	// }
 
-	if (value.IsEmpty())
-		throw js_error(try_catch);
-	CString		result(value.ToLocalChecked());
+	// if (ctx->Global()->Get(ctx, key).FromMaybe(v8::Local<v8::Value>())->IsUndefined())
+	// {
+	// 	HandleScope		handle_scope(plv8_isolate);
+	// 	v8::ScriptOrigin origin(key);
+	// 	v8::Local<v8::Script> script;
+	// 	if (!Script::Compile(plv8_isolate->GetCurrentContext(), ToString(dialect_binary_data), &origin).ToLocal(&script))
+	// 		throw js_error(try_catch);
+	// 	if (script.IsEmpty())
+	// 		throw js_error(try_catch);
+	// 	v8::Local<v8::Value> result;
+	// 	if (!script->Run(plv8_isolate->GetCurrentContext()).ToLocal(&result))
+	// 		throw js_error(try_catch);
+	// 	if (result.IsEmpty())
+	// 		throw js_error(try_catch);
+	// }
 
-	PG_TRY();
-	{
-		MemoryContext	oldcontext = MemoryContextSwitchTo(TopMemoryContext);
-		cresult = pstrdup(result.str());
-		MemoryContextSwitchTo(oldcontext);
-	}
-	PG_CATCH();
-	{
-		throw pg_error();
-	}
-	PG_END_TRY();
+	// Local<Object>	compiler = Local<Object>::Cast(ctx->Global()->Get(plv8_isolate->GetCurrentContext(), key).FromMaybe(v8::Local<Value>()));
 
-	return cresult;
+	// Local<Function>	func = Local<Function>::Cast(
+	// 		compiler->Get(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "compile", v8::NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>())).FromMaybe(v8::Local<v8::Context>())  );
+
+	// const int		nargs = 1;
+	// Handle<v8::Value>	args[nargs];
+
+	// args[0] = ToString(src);
+	// MaybeLocal<v8::Value>	value = func->Call(ctx, compiler, nargs, args);
+
+	// if (value.IsEmpty())
+	// 	throw js_error(try_catch);
+	// CString		result(value.ToLocalChecked());
+
+	// PG_TRY();
+	// {
+	// 	MemoryContext	oldcontext = MemoryContextSwitchTo(TopMemoryContext);
+	// 	cresult = pstrdup(result.str());
+	// 	MemoryContextSwitchTo(oldcontext);
+	// }
+	// PG_CATCH();
+	// {
+	// 	throw pg_error();
+	// }
+	// PG_END_TRY();
+
+	// return cresult;
 }
 
 /*
@@ -1687,26 +1700,26 @@ GetGlobalObjectTemplate()
 
 		Local<ObjectTemplate> templ = ObjectTemplate::New(plv8_isolate);
 		// ERROR levels for elog
-		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG5", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG5));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG4", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG4));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG3", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG3));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG2", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG2));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG1", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG1));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG5));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "LOG", String::kInternalizedString), Int32::New(plv8_isolate, LOG));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "INFO", String::kInternalizedString), Int32::New(plv8_isolate, INFO));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "NOTICE", String::kInternalizedString), Int32::New(plv8_isolate, NOTICE));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "WARNING", String::kInternalizedString), Int32::New(plv8_isolate, WARNING));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "ERROR", String::kInternalizedString), Int32::New(plv8_isolate, ERROR));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG5", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, DEBUG5));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG4", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, DEBUG4));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG3", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, DEBUG3));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG2", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, DEBUG2));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG1", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, DEBUG1));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, DEBUG5));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "LOG", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, LOG));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "INFO", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, INFO));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "NOTICE", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, NOTICE));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "WARNING", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, WARNING));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "ERROR", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, ERROR));
 		global.Reset(plv8_isolate, templ);
 
 		Handle<ObjectTemplate>	plv8 = ObjectTemplate::New(plv8_isolate);
 
 		SetupPlv8Functions(plv8);
-		plv8->Set(String::NewFromUtf8(plv8_isolate, "version", String::kInternalizedString), String::NewFromUtf8(plv8_isolate, PLV8_VERSION));
-		plv8->Set(String::NewFromUtf8(plv8_isolate, "v8_version", String::kInternalizedString), String::NewFromUtf8(plv8_isolate, V8_VERSION_STRING));
+		plv8->Set(String::NewFromUtf8(plv8_isolate, "version", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), String::NewFromUtf8(plv8_isolate, PLV8_VERSION).FromMaybe(v8::Local<String>()));
+		plv8->Set(String::NewFromUtf8(plv8_isolate, "v8_version", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), String::NewFromUtf8(plv8_isolate, V8_VERSION_STRING).FromMaybe(v8::Local<String>()));
 
-		templ->Set(String::NewFromUtf8(plv8_isolate, "plv8", String::kInternalizedString), plv8);
+		templ->Set(String::NewFromUtf8(plv8_isolate, "plv8", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), plv8);
 	}
 	return Local<ObjectTemplate>::New(plv8_isolate, global);
 }
@@ -1833,7 +1846,7 @@ Converter::ToValue(HeapTuple tuple)
 		datum = nocachegetattr(tuple, c + 1, m_tupdesc, &isnull);
 #endif
 
-		obj->Set(m_colnames[c], ::ToValue(datum, isnull, &m_coltypes[c]));
+		obj->Set(plv8_isolate->GetCurrentContext(), m_colnames[c], ::ToValue(datum, isnull, &m_coltypes[c]));
 	}
 
 	return obj;
@@ -1845,6 +1858,7 @@ Converter::ToDatum(Handle<v8::Value> value, Tuplestorestate *tupstore)
 	Datum			result;
 	TryCatch		try_catch(plv8_isolate);
 	Handle<Object>	obj;
+	Handle<Context> context = plv8_isolate->GetCurrentContext();
 
 	if (!m_is_scalar)
 	{
@@ -1861,10 +1875,11 @@ Converter::ToDatum(Handle<v8::Value> value, Tuplestorestate *tupstore)
 	 */
 	Datum  *values = (Datum *) palloc(sizeof(Datum) * m_tupdesc->natts);
 	bool   *nulls = (bool *) palloc(sizeof(bool) * m_tupdesc->natts);
+	v8::MaybeLocal<v8::Value> maybeFName;
 
 	if (!m_is_scalar)
 	{
-		Handle<Array> names = obj->GetPropertyNames(plv8_isolate->GetCurrentContext()).ToLocalChecked();
+		Handle<Array> names = obj->GetPropertyNames(context).ToLocalChecked();
 
 		for (int c = 0; c < m_tupdesc->natts; c++)
 		{
@@ -1875,7 +1890,11 @@ Converter::ToDatum(Handle<v8::Value> value, Tuplestorestate *tupstore)
 			CString  colname(m_colnames[c]);
 			for (int d = 0; d < m_tupdesc->natts; d++)
 			{
-				CString fname(names->Get(d));
+				maybeFName = names->Get(context, d).FromMaybe(v8::Local<v8::Value>());
+				if (maybeFName.IsEmpty()) {
+					throw js_error("empty function name");
+				}
+				CString fname(maybeFName.FromMaybe(v8::Local<v8::Value>()));
 				if (strcmp(colname, fname) == 0)
 				{
 					found = true;
@@ -1887,6 +1906,7 @@ Converter::ToDatum(Handle<v8::Value> value, Tuplestorestate *tupstore)
 		}
 	}
 
+	v8::Handle<v8::Value> attr;
 	for (int c = 0; c < m_tupdesc->natts; c++)
 	{
 		/* Make sure dropped columns are skipped by backend code. */
@@ -1900,8 +1920,8 @@ Converter::ToDatum(Handle<v8::Value> value, Tuplestorestate *tupstore)
 			continue;
 		}
 
-		Handle<v8::Value> attr = m_is_scalar ? value : obj->Get(m_colnames[c]);
-		if (attr.IsEmpty() || attr->IsUndefined() || attr->IsNull())
+		attr = m_is_scalar ? value : obj->Get(context, m_colnames[c]).FromMaybe(v8::Handle<v8::Value>());
+		if (attr->IsUndefined() || attr->IsNull())
 			nulls[c] = true;
 		else
 			values[c] = ::ToDatum(attr, &nulls[c], &m_coltypes[c]);
@@ -1942,6 +1962,7 @@ js_error::js_error(TryCatch &try_catch) throw()
 	HandleScope		handle_scope(plv8_isolate);
 	String::Utf8Value	exception(plv8_isolate, try_catch.Exception());
 	Handle<Message>		message = try_catch.Message();
+	Handle<Context> context = plv8_isolate->GetCurrentContext();
 
 	m_msg = NULL;
 	m_code = 0;
@@ -1952,7 +1973,7 @@ js_error::js_error(TryCatch &try_catch) throw()
 	try
 	{
 		m_msg = ToCStringCopy(exception);
-		Handle<v8::Object> err = try_catch.Exception()->ToObject(plv8_isolate);
+		Handle<v8::Object> err = try_catch.Exception()->ToObject(plv8_isolate->GetCurrentContext()).FromMaybe(Handle<v8::Object>());
 		StringInfoData	detailStr;
 		StringInfoData	hintStr;
 		StringInfoData	contextStr;
@@ -1962,33 +1983,33 @@ js_error::js_error(TryCatch &try_catch) throw()
 
 		if (!err.IsEmpty())
                 {
-			v8::Local<v8::Value> errCode = err->Get(String::NewFromUtf8(plv8_isolate, "code"));
-			if (!errCode->IsUndefined() && !errCode->IsNull())
+			v8::MaybeLocal<v8::Value> errCode = err->Get(context, String::NewFromUtf8(plv8_isolate, "code").FromMaybe(v8::Local<String>()));
+			if (errCode.IsEmpty() || (!errCode.FromMaybe(v8::Local<v8::Value>())->IsUndefined() && !errCode.FromMaybe(v8::Local<v8::Value>())->IsNull()))
 			{
-				int32_t code = errCode->Int32Value(plv8_isolate->GetCurrentContext()).FromJust();
+				int32_t code = errCode.FromMaybe(v8::Local<v8::Value>())->Int32Value(plv8_isolate->GetCurrentContext()).FromJust();
 				m_code = code;
 			}
 
-			v8::Local<v8::Value> errDetail = err->Get(String::NewFromUtf8(plv8_isolate, "detail"));
-			if (!errDetail->IsUndefined() && !errDetail->IsNull())
+			v8::MaybeLocal<v8::Value> errDetail = err->Get(context, String::NewFromUtf8(plv8_isolate, "detail").FromMaybe(v8::Local<String>()));
+			if (errDetail.IsEmpty() || (!errDetail.FromMaybe(v8::Local<v8::Value>())->IsUndefined() && !errDetail.FromMaybe(v8::Local<v8::Value>())->IsNull()))
 			{
-				CString detail(errDetail);
+				CString detail(errDetail.FromMaybe(v8::Local<v8::Value>()));
 				appendStringInfo(&detailStr, "%s", detail.str("?"));
 				m_detail = detailStr.data;
 			}
 
-			v8::Local<v8::Value> errHint = err->Get(String::NewFromUtf8(plv8_isolate, "hint"));
-			if (!errHint->IsUndefined() && !errHint->IsNull())
+			v8::MaybeLocal<v8::Value> errHint = err->Get(context, String::NewFromUtf8(plv8_isolate, "hint").FromMaybe(v8::Local<String>()));
+			if (errHint.IsEmpty() || (!errHint.FromMaybe(v8::Local<v8::Value>())->IsUndefined() && !errHint.FromMaybe(v8::Local<v8::Value>())->IsNull()))
 			{
-				CString hint(errHint);
+				CString hint(errHint.FromMaybe(v8::Local<v8::Value>()));
 				appendStringInfo(&hintStr, "%s", hint.str("?"));
 				m_hint = hintStr.data;
 			}
 
-			v8::Local<v8::Value> errContext = err->Get(String::NewFromUtf8(plv8_isolate, "context"));
-			if (!errContext->IsUndefined() && !errContext->IsNull())
+			v8::MaybeLocal<v8::Value> errContext = err->Get(context, String::NewFromUtf8(plv8_isolate, "context").FromMaybe(v8::Local<String>()));
+			if (errContext.IsEmpty() || (!errContext.FromMaybe(v8::Local<v8::Value>())->IsUndefined() && !errContext.FromMaybe(v8::Local<v8::Value>())->IsNull()))
 			{
-				CString context(errContext);
+				CString context(errContext.FromMaybe(v8::Local<v8::Value>()));
 				appendStringInfo(&contextStr, "%s\n", context.str("?"));
 			}
                 }

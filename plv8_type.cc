@@ -179,7 +179,7 @@ GetJsonbValue(JsonbValue *scalarVal) {
     strncpy(t, scalarVal->val.string.val, scalarVal->val.string.len);
     t[ scalarVal->val.string.len ] = '\0';
 
-		return Local<v8::Value>::New(plv8_isolate, String::NewFromUtf8(plv8_isolate, t));
+		return Local<v8::Value>::New(plv8_isolate, String::NewFromUtf8(plv8_isolate, t).FromMaybe(v8::Local<v8::String>()));
   } else if (scalarVal->type == jbvNumeric) {
 		return Local<v8::Value>::New(plv8_isolate, Number::New(plv8_isolate, DatumGetFloat8(DirectFunctionCall1(numeric_float8, PointerGetDatum(scalarVal->val.numeric)))));
   } else if (scalarVal->type == jbvBool) {
@@ -205,10 +205,10 @@ JsonbIterate(JsonbIterator **it, Local<v8::Object> container) {
     case WJB_BEGIN_OBJECT:
 			obj = v8::Object::New(plv8_isolate);
 			if (container->IsArray()) {
-				container->Set(count, JsonbIterate(it, obj));
+				container->Set(plv8_isolate->GetCurrentContext(), count, JsonbIterate(it, obj));
 				count++;
 			} else {
-				container->Set(key, JsonbIterate(it, obj));
+				container->Set(plv8_isolate->GetCurrentContext(), key, JsonbIterate(it, obj));
 			}
       break;
 
@@ -220,10 +220,10 @@ JsonbIterate(JsonbIterator **it, Local<v8::Object> container) {
     case WJB_BEGIN_ARRAY:
 			obj = v8::Array::New(plv8_isolate);
 			if (container->IsArray()) {
-				container->Set(count, JsonbIterate(it, obj));
+				container->Set(plv8_isolate->GetCurrentContext(), count, JsonbIterate(it, obj));
 				count++;
 			} else {
-				container->Set(key, JsonbIterate(it, obj));
+				container->Set(plv8_isolate->GetCurrentContext(), key, JsonbIterate(it, obj));
 			}
       break;
 
@@ -239,12 +239,12 @@ JsonbIterate(JsonbIterator **it, Local<v8::Object> container) {
 
     case WJB_VALUE:
       // object value
-			container->Set(key, GetJsonbValue(&val));
+			container->Set(plv8_isolate->GetCurrentContext(), key, GetJsonbValue(&val));
       break;
 
     case WJB_ELEM:
       // array element
-			container->Set(count, GetJsonbValue(&val));
+			container->Set(plv8_isolate->GetCurrentContext(), count, GetJsonbValue(&val));
 			count++;
       break;
 
@@ -279,10 +279,10 @@ ConvertJsonb(JsonbContainer *in) {
 	return JsonbIterate(&it, container);
 }
 
-static JsonbValue *
-JsonbObjectFromObject(JsonbParseState **pstate, Local<v8::Object> object);
-static JsonbValue *
-JsonbArrayFromArray(JsonbParseState **pstate, Local<v8::Object> object);
+// static JsonbValue *
+// JsonbObjectFromObject(JsonbParseState **pstate, Local<v8::Object> object);
+// static JsonbValue *
+// JsonbArrayFromArray(JsonbParseState **pstate, Local<v8::Object> object);
 
 static void LogType(Local<v8::Value> val, bool asError = true) {
 	if( val->IsUndefined() )
@@ -402,20 +402,20 @@ JsonbFromValue(JsonbParseState **pstate, Local<v8::Value> value, JsonbIteratorTo
 	// if the token type is a key, the only valid value is jbvString
 	if (type == WJB_KEY) {
 		val.type = jbvString;
-		String::Utf8Value utf8(plv8_isolate, value->ToString(plv8_isolate));
+		String::Utf8Value utf8(plv8_isolate, value->ToString(plv8_isolate->GetCurrentContext()).FromMaybe(v8::Local<v8::String>()));
 		val.val.string.val = ToCStringCopy(utf8);
 		val.val.string.len = utf8.length();
 	} else {
 		if (value->IsBoolean()) {
 			val.type = jbvBool;
-			val.val.boolean = value->BooleanValue(plv8_isolate->GetCurrentContext()).ToChecked();
+			val.val.boolean = value->BooleanValue(plv8_isolate);
 		} else if (value->IsNull()) {
 			val.type = jbvNull;
 		} else if (value->IsUndefined()) {
 			return NULL;
 		} else if (value->IsString()) {
 			val.type = jbvString;
-			String::Utf8Value utf8(plv8_isolate, value->ToString(plv8_isolate));
+			String::Utf8Value utf8(plv8_isolate, value->ToString(plv8_isolate->GetCurrentContext()).FromMaybe(v8::Local<v8::String>()));
 			val.val.string.val = ToCStringCopy(utf8);
 			val.val.string.len = utf8.length();
 		} else if (value->IsNumber()) {
@@ -445,7 +445,7 @@ JsonbFromValue(JsonbParseState **pstate, Local<v8::Value> value, JsonbIteratorTo
 		} else {
 			LogType(value, false);
 			val.type = jbvString;
-			String::Utf8Value utf8(plv8_isolate, value->ToString(plv8_isolate));
+			String::Utf8Value utf8(plv8_isolate, value->ToString(plv8_isolate->GetCurrentContext()).FromMaybe(v8::Local<v8::String>()));
 			val.val.string.val = ToCStringCopy(utf8);
 			val.val.string.len = utf8.length();
 		}
@@ -454,91 +454,100 @@ JsonbFromValue(JsonbParseState **pstate, Local<v8::Value> value, JsonbIteratorTo
 	return pushJsonbValue(pstate, type, &val);
 }
 
-static JsonbValue *
-JsonbArrayFromArray(JsonbParseState **pstate, Local<v8::Object> object) {
-	JsonbValue *val = pushJsonbValue(pstate, WJB_BEGIN_ARRAY, NULL);
-	Local<v8::Array> a = Local<v8::Array>::Cast(object);
-	for (size_t i = 0; i < a->Length(); i++) {
-		Local<v8::Value> o = a->Get(i);
+// static JsonbValue *
+// JsonbArrayFromArray(JsonbParseState **pstate, Local<v8::Object> object) {
+// 	JsonbValue *val = pushJsonbValue(pstate, WJB_BEGIN_ARRAY, NULL);
+// 	Local<v8::Array> a = Local<v8::Array>::Cast(object);
+// 	MaybeLocal<v8::Value> o;
 
-		if (o->IsArray()) {
-			val = JsonbArrayFromArray(pstate, Local<v8::Array>::Cast(o));
-		} else if (o->IsObject()) {
-			val = JsonbObjectFromObject(pstate, Local<v8::Object>::Cast(o));
-		} else {
-			val = JsonbFromValue(pstate, o, WJB_ELEM);
-		}
-	}
+// 	for (size_t i = 0; i < a->Length(); i++) {
+// 		o = a->Get(plv8_isolate->GetCurrentContext(), i);
 
-	val = pushJsonbValue(pstate, WJB_END_ARRAY, NULL);
+// 		if (o.FromMaybe(Local<v8::Value>())->IsArray()) {
+// 			val = JsonbArrayFromArray(pstate, Local<v8::Object>::Cast(o.FromMaybe(Local<v8::Object>()) ));
+// 		} else if (o.FromMaybe(Local<v8::Value>())->IsObject()) {
+// 			val = JsonbObjectFromObject(pstate, o.FromMaybe(Local<v8::Object>()) );
+// 		} else {
+// 			val = JsonbFromValue(pstate, o.FromMaybe(Local<v8::Object>()), WJB_ELEM);
+// 		}
+// 	}
 
-	return val;
-}
+// 	val = pushJsonbValue(pstate, WJB_END_ARRAY, NULL);
 
-static JsonbValue *
-JsonbObjectFromObject(JsonbParseState **pstate, Local<v8::Object> object) {
-	JsonbValue *val = pushJsonbValue(pstate, WJB_BEGIN_OBJECT, NULL);
-	Local<Array> arr = object->GetOwnPropertyNames(plv8_isolate->GetCurrentContext()).ToLocalChecked();
+// 	return val;
+// }
 
-	for (size_t i = 0; i < arr->Length(); i++) {
-		Local<v8::Value> v = arr->Get(i);
-		val = JsonbFromValue(pstate, v, WJB_KEY);
-		Local<v8::Value> o = object->Get(v);
+// static JsonbValue *
+// JsonbObjectFromObject(JsonbParseState **pstate, Local<v8::Object> object) {
+// 	JsonbValue *val = pushJsonbValue(pstate, WJB_BEGIN_OBJECT, NULL);
+// 	Local<Array> arr = object->GetOwnPropertyNames(plv8_isolate->GetCurrentContext()).ToLocalChecked();
 
-		if (o->IsDate()) {
-			val = JsonbFromValue(pstate, o, WJB_VALUE);
-		} else if (o->IsArray()) {
-			val = JsonbArrayFromArray(pstate, Local<v8::Array>::Cast(o));
-		} else if (o->IsObject()) {
-			val = JsonbObjectFromObject(pstate, Local<v8::Object>::Cast(o));
-		} else {
-			val = JsonbFromValue(pstate, o, WJB_VALUE);
-		}
-	}
-	val = pushJsonbValue(pstate, WJB_END_OBJECT, NULL);
-	return val;
-}
+// 	MaybeLocal<v8::Value> v;
+// 	MaybeLocal<v8::Value> o;
 
-static Jsonb *
-ConvertObject(Local<v8::Object> object) {
-	// create a new memory context for conversion
-	MemoryContext oldcontext = CurrentMemoryContext;
-	MemoryContext conversion_context;
+// 	for (size_t i = 0; i < arr->Length(); i++) {
+// 		v = arr->Get(plv8_isolate->GetCurrentContext(), i);
+// 		val = JsonbFromValue(pstate, v.FromMaybe(v8::Local<v8::Value>()), WJB_KEY);
+// 		o = object->Get(plv8_isolate->GetCurrentContext(), v.FromMaybe(v8::Local<v8::Value>()));
 
-#if PG_VERSION_NUM < 110000
-	conversion_context = AllocSetContextCreate(
-						CurrentMemoryContext,
-						"JSONB Conversion Context",
-						ALLOCSET_SMALL_MINSIZE,
-						ALLOCSET_SMALL_INITSIZE,
-						ALLOCSET_SMALL_MAXSIZE);
-#else
-	conversion_context = AllocSetContextCreate(CurrentMemoryContext,
-						"JSONB Conversion Context",
-						ALLOCSET_SMALL_SIZES);
-#endif
+// 		if (v.IsEmpty() || o.IsEmpty()) {
+// 			throw js_error("empty val or object");
+// 		}
 
-	MemoryContextSwitchTo(conversion_context);
+// 		if (o.FromMaybe(v8::Local<v8::Value>())->IsDate()) {
+// 			val = JsonbFromValue(pstate, o.FromMaybe(v8::Local<v8::Value>()), WJB_VALUE);
+// 		} else if (o.FromMaybe(v8::Local<v8::Value>())->IsArray()) {
+// 			val = JsonbArrayFromArray(pstate, v8::Local<v8::Object>::Cast(o.FromMaybe(v8::Local<v8::Value>())));
+// 		} else if (o.FromMaybe(v8::Local<v8::Value>())->IsObject()) {
+// 			val = JsonbObjectFromObject(pstate, v8::Local<v8::Object>::Cast(o.FromMaybe(v8::Local<v8::Value>())));
+// 		} else {
+// 			val = JsonbFromValue(pstate, o.FromMaybe(v8::Local<v8::Value>()), WJB_VALUE);
+// 		}
+// 	}
+// 	val = pushJsonbValue(pstate, WJB_END_OBJECT, NULL);
+// 	return val;
+// }
 
-  JsonbParseState *pstate = NULL;
-  JsonbValue *val;
+// static Jsonb *
+// ConvertObject(Local<v8::Object> object) {
+// 	// create a new memory context for conversion
+// 	MemoryContext oldcontext = CurrentMemoryContext;
+// 	MemoryContext conversion_context;
 
-	if (object->IsArray()) {
-		val = JsonbArrayFromArray(&pstate, object);
-	} else if (object->IsObject()) {
-		val = JsonbObjectFromObject(&pstate, object);
-	} else {
-		val = pushJsonbValue(&pstate, WJB_BEGIN_ARRAY, NULL);
-		val = JsonbFromValue(&pstate, object, WJB_ELEM);
-		val = pushJsonbValue(&pstate, WJB_END_ARRAY, NULL);
-	}
+// #if PG_VERSION_NUM < 110000
+// 	conversion_context = AllocSetContextCreate(
+// 						CurrentMemoryContext,
+// 						"JSONB Conversion Context",
+// 						ALLOCSET_SMALL_MINSIZE,
+// 						ALLOCSET_SMALL_INITSIZE,
+// 						ALLOCSET_SMALL_MAXSIZE);
+// #else
+// 	conversion_context = AllocSetContextCreate(CurrentMemoryContext,
+// 						"JSONB Conversion Context",
+// 						ALLOCSET_SMALL_SIZES);
+// #endif
 
-	MemoryContextSwitchTo(oldcontext);
+// 	MemoryContextSwitchTo(conversion_context);
 
-	Jsonb *ret = JsonbValueToJsonb(val);
-	MemoryContextDelete(conversion_context);
-  return ret;
-}
+//   JsonbParseState *pstate = NULL;
+//   JsonbValue *val;
+
+// 	if (object->IsArray()) {
+// 		val = JsonbArrayFromArray(&pstate, object);
+// 	} else if (object->IsObject()) {
+// 		val = JsonbObjectFromObject(&pstate, object);
+// 	} else {
+// 		val = pushJsonbValue(&pstate, WJB_BEGIN_ARRAY, NULL);
+// 		val = JsonbFromValue(&pstate, object, WJB_ELEM);
+// 		val = pushJsonbValue(&pstate, WJB_END_ARRAY, NULL);
+// 	}
+
+// 	MemoryContextSwitchTo(oldcontext);
+
+// 	Jsonb *ret = JsonbValueToJsonb(val);
+// 	MemoryContextDelete(conversion_context);
+//   return ret;
+// }
 #endif
 
 static Local<Object>
@@ -639,7 +648,7 @@ ToScalarDatum(Handle<v8::Value> value, bool *isnull, plv8_type *type)
 		break;
 	case BOOLOID:
 		if (value->IsBoolean())
-			return BoolGetDatum(value->BooleanValue(plv8_isolate->GetCurrentContext()).ToChecked());
+			return BoolGetDatum(value->BooleanValue(plv8_isolate));
 		break;
 	case INT2OID:
 		if (value->IsNumber())
@@ -677,7 +686,7 @@ ToScalarDatum(Handle<v8::Value> value, bool *isnull, plv8_type *type)
 		break;
 	case NUMERICOID:
 		if (value->IsBigInt()) {
-			String::Utf8Value utf8(plv8_isolate, value->ToString(plv8_isolate));
+			String::Utf8Value utf8(plv8_isolate, value->ToString(plv8_isolate->GetCurrentContext()).FromMaybe(v8::Local<v8::String>()));
 			return DirectFunctionCall3(numeric_in, (Datum) *utf8, ObjectIdGetDatum(InvalidOid), Int32GetDatum((int32) -1));
 		}
 		if (value->IsNumber())
@@ -754,7 +763,8 @@ ToScalarDatum(Handle<v8::Value> value, bool *isnull, plv8_type *type)
 	case JSONBOID:
 #if JSONB_DIRECT_CONVERSION
 		{
-			Jsonb *obj = ConvertObject(Local<v8::Object>::Cast(value));
+			// Jsonb *obj = ConvertObject(Local<v8::Object>::Cast(value));
+			Jsonb *obj = NULL;
 #if PG_VERSION_NUM < 110000
 			PG_RETURN_JSONB(DatumGetJsonb(obj));
 #else
@@ -852,9 +862,9 @@ ToArrayDatum(Handle<v8::Value> value, bool *isnull, plv8_type *type)
 	for (int i = 0; i < length; i++) {
 		if (type->is_composite)
 		{
-			values[i] = ToRecordDatum(array->Get(i), &nulls[i], type);
+			values[i] = ToRecordDatum(array->Get(plv8_isolate->GetCurrentContext(), i).FromMaybe(Local<v8::Value>()), &nulls[i], type);
 		} else {
-			values[i] = ToScalarDatum(array->Get(i), &nulls[i], type);
+			values[i] = ToScalarDatum(array->Get(plv8_isolate->GetCurrentContext(), i).FromMaybe(Local<v8::Value>()), &nulls[i], type);
 		}
 	}
 
@@ -1055,7 +1065,7 @@ ToArrayValue(Datum datum, bool isnull, plv8_type *type)
 	get_typlenbyvalalign(base.typid, &(base.len), &(base.byval), &(base.align));
 
 	for (int i = 0; i < nelems; i++)
-		result->Set(i, ToValue(values[i], nulls[i], &base));
+		result->Set(plv8_isolate->GetCurrentContext(), i, ToValue(values[i], nulls[i], &base));
 
 	pfree(values);
 	pfree(nulls);
@@ -1126,7 +1136,7 @@ ToString(Datum value, plv8_type *type)
 
 	Local<String>	result =
 		encoding == PG_UTF8
-			? String::NewFromUtf8(plv8_isolate, str)
+			? String::NewFromUtf8(plv8_isolate, str).FromMaybe(v8::Local<v8::String>())
 			: ToString(str, strlen(str), encoding);
 	pfree(str);
 
@@ -1139,7 +1149,7 @@ ToString(const char *str, int len, int encoding)
 	char		   *utf8;
 
 	if (str == NULL) {
-		return String::NewFromUtf8(plv8_isolate, "(null)", String::kNormalString, 6);
+		return String::NewFromUtf8(plv8_isolate, "(null)", NewStringType::kNormal, 6).FromMaybe(v8::Local<v8::String>());
 	}
 	if (len < 0)
 		len = strlen(str);
@@ -1157,7 +1167,7 @@ ToString(const char *str, int len, int encoding)
 
 	if (utf8 != str)
 		len = strlen(utf8);
-	Local<String> result = String::NewFromUtf8(plv8_isolate, utf8, String::kNormalString, len);
+	Local<String> result = String::NewFromUtf8(plv8_isolate, utf8, NewStringType::kNormal, len).FromMaybe(v8::Local<v8::String>());
 	if (utf8 != str)
 		pfree(utf8);
 	return result;
@@ -1294,10 +1304,10 @@ CString::~CString()
 bool CString::toStdString(v8::Handle<v8::Value> value, std::string &out)
 {
 	if(value.IsEmpty()) return false;
-	String::Utf8Value utf8(plv8_isolate, value->ToString(plv8_isolate));
+	String::Utf8Value utf8(plv8_isolate, value->ToString(plv8_isolate->GetCurrentContext()).FromMaybe(v8::Local<v8::String>()));
 
   // convert it to string
-	//auto obj = value->ToString(plv8_isolate);
+	//auto obj = value->ToString(plv8_isolate->GetCurrentContext());
 	//String::Utf8Value utf8(val);
 	if(*utf8) {
 		out = *utf8;
