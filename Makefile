@@ -16,7 +16,7 @@ ICU_STATIC_LIBS = -licui18n -licuuc
 AUTOV8_STATIC_LIBS = -lv8_monolith $(ICU_STATIC_LIBS)
 
 ifndef USE_ICU
-	$(filter-out $(ICU_STATIC_LIBS), $(AUTOV8_STATIC_LIBS))
+	AUTOV8_STATIC_LIBS := $(filter-out $(ICU_STATIC_LIBS), $(AUTOV8_STATIC_LIBS))
 endif
 
 export PATH := $(abspath $(AUTOV8_DEPOT_TOOLS)):$(PATH)
