@@ -327,18 +327,18 @@ plv8_FunctionInvoker(const FunctionCallbackInfo<v8::Value> &args) throw()
 		FreeErrorData(edata);
 
 		Handle<v8::Object> err = Exception::Error(message)->ToObject(plv8_isolate->GetCurrentContext()).ToLocalChecked();
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "sqlerrcode").ToLocalChecked()), sqlerrcode);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "sqlerrcode").ToLocalChecked(), sqlerrcode);
 #if PG_VERSION_NUM >= 90300
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "schema_name").ToLocalChecked()), schema_name);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "table_name").ToLocalChecked()), table_name);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "column_name").ToLocalChecked()), column_name);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "datatype_name").ToLocalChecked()), datatype_name);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "constraint_name").ToLocalChecked()), constraint_name);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "detail").ToLocalChecked()), detail);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "hint").ToLocalChecked()), hint);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "context").ToLocalChecked()), context);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "internalquery").ToLocalChecked()), internalquery);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "code").ToLocalChecked()), code);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "schema_name").ToLocalChecked(), schema_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "table_name").ToLocalChecked(), table_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "column_name").ToLocalChecked(), column_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "datatype_name").ToLocalChecked(), datatype_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "constraint_name").ToLocalChecked(), constraint_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "detail").ToLocalChecked(), detail);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "hint").ToLocalChecked(), hint);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "context").ToLocalChecked(), context);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "internalquery").ToLocalChecked(), internalquery);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "code").ToLocalChecked(), code);
 #endif
 
 		args.GetReturnValue().Set(plv8_isolate->ThrowException(err));
