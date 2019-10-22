@@ -9,10 +9,16 @@
 #-----------------------------------------------------------------------------#
 AUTOV8_VERSION = 7.7
 AUTOV8_DIR = build/v8
-AUTOV8_OUT = build/v8/out.gn/x64.release/obj
+AUTOV8_OUT = build/v8/out.gn/x64.release.sample/obj
 AUTOV8_DEPOT_TOOLS = build/depot_tools
 AUTOV8_LIB = $(AUTOV8_OUT)/libv8_snapshot.a
-AUTOV8_STATIC_LIBS = -lv8_base -lv8_snapshot -lv8_libplatform -lv8_libbase -lv8_libsampler -licui18n -licuuc
+ICU_STATIC_LIBS = -licui18n -licuuc
+AUTOV8_STATIC_LIBS = -lv8_monolith $(ICU_STATIC_LIBS)
+
+ifndef USE_ICU
+	$(filter-out $(ICU_STATIC_LIBS), $(AUTOV8_STATIC_LIBS))
+endif
+
 export PATH := $(abspath $(AUTOV8_DEPOT_TOOLS)):$(PATH)
 
 SHLIB_LINK += -L$(AUTOV8_OUT) -L$(AUTOV8_OUT)/third_party/icu $(AUTOV8_STATIC_LIBS)
@@ -66,14 +72,14 @@ else
 	ifeq ($(UNAME_S),Darwin)
 		CCFLAGS += -stdlib=libc++ -std=c++11
 		SHLIB_LINK += -stdlib=libc++
-		PLATFORM = x64.release
+		PLATFORM = x64.release.sample
 	endif
 	ifeq ($(UNAME_S),Linux)
 		ifeq ($(shell uname -m | grep -o arm),arm)
 			PLATFORM = arm64.release
 		endif
 		ifeq ($(shell uname -m),x86_64)
-			PLATFORM = x64.release
+			PLATFORM = x64.release.sample
 		endif
 		CCFLAGS += -std=c++11
 		SHLIB_LINK += -lrt -std=c++11 -lc++
