@@ -243,8 +243,16 @@ public:
 	SRFSupport(v8::Handle<v8::Context> context,
 			   Converter *conv, Tuplestorestate *tupstore)
 	{
-		m_plv8obj = v8::Handle<v8::Object>::Cast(context->Global()->Get(context,
-			v8::String::NewFromUtf8(context->GetIsolate(), "plv8", v8::NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>())).FromMaybe(v8::Handle<v8::Value>()));
+		v8::Local<v8::String> plv8_key = v8::String::NewFromUtf8(
+			context->GetIsolate(),
+			"plv8",
+			v8::NewStringType::kInternalized
+		).ToLocalChecked();
+
+		m_plv8obj = v8::Handle<v8::Object>::Cast(
+			context->Global()->Get(context,plv8_key).FromMaybe(v8::Handle<v8::Value>())
+		);
+
 		if (m_plv8obj.IsEmpty())
 			throw js_error("plv8 object not found");
 		m_prev_conv = m_plv8obj->GetInternalField(PLV8_INTNL_CONV);

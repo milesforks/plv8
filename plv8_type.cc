@@ -763,6 +763,7 @@ ToScalarDatum(Handle<v8::Value> value, bool *isnull, plv8_type *type)
 	case JSONBOID:
 #if JSONB_DIRECT_CONVERSION
 		{
+			// TODO: Fix jsonb functionality and restore it
 			// Jsonb *obj = ConvertObject(Local<v8::Object>::Cast(value));
 			Jsonb *obj = NULL;
 #if PG_VERSION_NUM < 110000
@@ -1149,7 +1150,7 @@ ToString(const char *str, int len, int encoding)
 	char		   *utf8;
 
 	if (str == NULL) {
-		return String::NewFromUtf8(plv8_isolate, "(null)", NewStringType::kNormal, 6).FromMaybe(v8::Local<v8::String>());
+		return String::NewFromUtf8(plv8_isolate, "(null)", NewStringType::kNormal, 6).ToLocalChecked();
 	}
 	if (len < 0)
 		len = strlen(str);

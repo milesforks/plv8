@@ -196,7 +196,7 @@ JSONObject::JSONObject()
 {
 	Handle<Context> context = plv8_isolate->GetCurrentContext();
 	Handle<Object> global = context->Global();
-	v8::Local<v8::String> json_key = String::NewFromUtf8(plv8_isolate, "JSON", NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>());
+	v8::Local<v8::String> json_key = String::NewFromUtf8(plv8_isolate, "JSON", NewStringType::kInternalized).ToLocalChecked();
 	MaybeLocal<v8::Object> maybeJson = global->Get(context, json_key).FromMaybe(v8::Local<v8::Value>())->ToObject(context);
 	if (maybeJson.IsEmpty())
 		throw js_error("JSON not found");
@@ -209,7 +209,7 @@ JSONObject::JSONObject()
 Handle<v8::Value>
 JSONObject::Parse(Handle<v8::Value> str)
 {
-	v8::Local<v8::String> parse_key = String::NewFromUtf8(plv8_isolate, "parse", NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>());
+	v8::Local<v8::String> parse_key = String::NewFromUtf8(plv8_isolate, "parse", NewStringType::kInternalized).ToLocalChecked();
 	Handle<Function> parse_func = Handle<Function>::Cast(
 		m_json->Get(plv8_isolate->GetCurrentContext(), parse_key).FromMaybe(v8::Handle<v8::Value>())
 	);
@@ -237,7 +237,7 @@ Handle<v8::Value>
 JSONObject::Stringify(Handle<v8::Value> val)
 {
 
-	v8::Local<v8::String> stringify_key = String::NewFromUtf8(plv8_isolate, "stringify", NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>());
+	v8::Local<v8::String> stringify_key = String::NewFromUtf8(plv8_isolate, "stringify", NewStringType::kInternalized).ToLocalChecked();
 	Handle<Function> stringify_func = Handle<Function>::Cast(
 		m_json->Get(plv8_isolate->GetCurrentContext(), stringify_key).FromMaybe(v8::Handle<v8::Value>())
 	);
@@ -327,18 +327,18 @@ plv8_FunctionInvoker(const FunctionCallbackInfo<v8::Value> &args) throw()
 		FreeErrorData(edata);
 
 		Handle<v8::Object> err = Exception::Error(message)->ToObject(plv8_isolate->GetCurrentContext()).ToLocalChecked();
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "sqlerrcode").FromMaybe(v8::Local<v8::String>()), sqlerrcode);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "sqlerrcode").ToLocalChecked()), sqlerrcode);
 #if PG_VERSION_NUM >= 90300
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "schema_name").FromMaybe(v8::Local<v8::String>()), schema_name);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "table_name").FromMaybe(v8::Local<v8::String>()), table_name);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "column_name").FromMaybe(v8::Local<v8::String>()), column_name);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "datatype_name").FromMaybe(v8::Local<v8::String>()), datatype_name);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "constraint_name").FromMaybe(v8::Local<v8::String>()), constraint_name);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "detail").FromMaybe(v8::Local<v8::String>()), detail);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "hint").FromMaybe(v8::Local<v8::String>()), hint);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "context").FromMaybe(v8::Local<v8::String>()), context);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "internalquery").FromMaybe(v8::Local<v8::String>()), internalquery);
-		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "code").FromMaybe(v8::Local<v8::String>()), code);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "schema_name").ToLocalChecked()), schema_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "table_name").ToLocalChecked()), table_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "column_name").ToLocalChecked()), column_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "datatype_name").ToLocalChecked()), datatype_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "constraint_name").ToLocalChecked()), constraint_name);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "detail").ToLocalChecked()), detail);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "hint").ToLocalChecked()), hint);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "context").ToLocalChecked()), context);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "internalquery").ToLocalChecked()), internalquery);
+		err->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "code").ToLocalChecked()), code);
 #endif
 
 		args.GetReturnValue().Set(plv8_isolate->ThrowException(err));
@@ -354,7 +354,7 @@ plv8_Elog(const FunctionCallbackInfo<v8::Value>& args)
 	MemoryContext	ctx = CurrentMemoryContext;
 
 	if (args.Length() < 2) {
-		args.GetReturnValue().Set(plv8_isolate->ThrowException(String::NewFromUtf8(plv8_isolate, "usage: plv8.elog(elevel, ...)").FromMaybe(v8::Local<v8::String>())   ));
+		args.GetReturnValue().Set(plv8_isolate->ThrowException(String::NewFromUtf8(plv8_isolate, "usage: plv8.elog(elevel, ...)").ToLocalChecked()   ));
 		return;
 	}
 
@@ -373,7 +373,7 @@ plv8_Elog(const FunctionCallbackInfo<v8::Value>& args)
 	case ERROR:
 		break;
 	default:
-		args.GetReturnValue().Set(plv8_isolate->ThrowException(String::NewFromUtf8(plv8_isolate, "invalid error level").FromMaybe(v8::Local<v8::String>())  ));
+		args.GetReturnValue().Set(plv8_isolate->ThrowException(String::NewFromUtf8(plv8_isolate, "invalid error level").ToLocalChecked()  ));
 		return;
 	}
 
@@ -493,7 +493,7 @@ plv8_execute_params(const char *sql, Handle<Array> params)
 		if (types[i] == InvalidOid)
 			elog(ERROR, "parameter[%d] cannot translate to a database type", i);
 
-		values[i] = value_get_datum(param.FromMaybe(Handle<v8::Array>()), types[i], &nulls[i]);
+		values[i] = value_get_datum(param, types[i], &nulls[i]);
 	}
 	status = SPI_execute_with_args(sql, nparam, types, values, nulls, false, 0);
 
@@ -626,7 +626,7 @@ plv8_Prepare(const FunctionCallbackInfo<v8::Value> &args)
 	if (PlanTemplate.IsEmpty())
 	{
 		Local<FunctionTemplate> base = FunctionTemplate::New(plv8_isolate);
-		base->SetClassName(String::NewFromUtf8(plv8_isolate, "PreparedPlan", NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>()));
+		base->SetClassName(String::NewFromUtf8(plv8_isolate, "PreparedPlan", NewStringType::kInternalized).ToLocalChecked());
 		Local<ObjectTemplate> templ = base->InstanceTemplate();
 		templ->SetInternalFieldCount(2);
 		SetCallback(templ, "cursor", plv8_PlanCursor);
@@ -751,7 +751,7 @@ plv8_PlanCursor(const FunctionCallbackInfo<v8::Value> &args)
 	if (CursorTemplate.IsEmpty())
 	{
 		Local<FunctionTemplate> base = FunctionTemplate::New(plv8_isolate);
-		base->SetClassName(String::NewFromUtf8(plv8_isolate, "Cursor", NewStringType::kInternalized).FromMaybe(v8::Local<v8::String>()));
+		base->SetClassName(String::NewFromUtf8(plv8_isolate, "Cursor", NewStringType::kInternalized).ToLocalChecked());
 		Local<ObjectTemplate> templ = base->InstanceTemplate();
 		templ->SetInternalFieldCount(1);
 		SetCallback(templ, "fetch", plv8_CursorFetch);
@@ -1175,7 +1175,7 @@ plv8_GetWindowObject(const FunctionCallbackInfo<v8::Value>& args)
 	{
 		/* Initialize it if we haven't yet. */
 		Local<FunctionTemplate> base = FunctionTemplate::New(plv8_isolate);
-		base->SetClassName(String::NewFromUtf8(plv8_isolate, "WindowObject", NewStringType::kInternalized).FromMaybe(v8::Local<String>()));
+		base->SetClassName(String::NewFromUtf8(plv8_isolate, "WindowObject", NewStringType::kInternalized).ToLocalChecked());
 		Local<ObjectTemplate> templ = base->InstanceTemplate();
 
 		/* We store fcinfo here. */
@@ -1193,9 +1193,9 @@ plv8_GetWindowObject(const FunctionCallbackInfo<v8::Value>& args)
 		SetCallback(templ, "get_func_arg_current", plv8_WinGetFuncArgCurrent);
 
 		/* Constants for get_func_in_XXX() */
-		templ->Set(String::NewFromUtf8(plv8_isolate, "SEEK_CURRENT", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, WINDOW_SEEK_CURRENT));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "SEEK_HEAD", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, WINDOW_SEEK_HEAD));
-		templ->Set(String::NewFromUtf8(plv8_isolate, "SEEK_TAIL", NewStringType::kInternalized).FromMaybe(v8::Local<String>()), Int32::New(plv8_isolate, WINDOW_SEEK_TAIL));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "SEEK_CURRENT", NewStringType::kInternalized).ToLocalChecked(), Int32::New(plv8_isolate, WINDOW_SEEK_CURRENT));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "SEEK_HEAD", NewStringType::kInternalized).ToLocalChecked(), Int32::New(plv8_isolate, WINDOW_SEEK_HEAD));
+		templ->Set(String::NewFromUtf8(plv8_isolate, "SEEK_TAIL", NewStringType::kInternalized).ToLocalChecked(), Int32::New(plv8_isolate, WINDOW_SEEK_TAIL));
 
 		WindowObjectTemplate.Reset(plv8_isolate, templ);
 	}
@@ -1657,9 +1657,9 @@ plv8_MemoryUsage(const FunctionCallbackInfo<v8::Value>& args)
 	Local<v8::Value> used = Local<v8::Value>::New(plv8_isolate, Number::New(plv8_isolate, v8_heap_stats.used_heap_size()));
 	Local<v8::Value> external = Local<v8::Value>::New(plv8_isolate, Number::New(plv8_isolate, v8_heap_stats.external_memory()));
 
-	obj->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "total_heap_size").FromMaybe(v8::Local<String>()), total);
-	obj->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "used_heap_size").FromMaybe(v8::Local<String>()), used);
-	obj->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "external_memory").FromMaybe(v8::Local<String>()), external);
+	obj->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "total_heap_size").ToLocalChecked(), total);
+	obj->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "used_heap_size").ToLocalChecked(), used);
+	obj->Set(plv8_isolate->GetCurrentContext(), String::NewFromUtf8(plv8_isolate, "external_memory").ToLocalChecked(), external);
 
 	result = obj;
 	args.GetReturnValue().Set(result);
