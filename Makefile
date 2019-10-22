@@ -7,7 +7,7 @@
 # structure in v8 which may be different from version to another, but user
 # can specify the v8 version by AUTOV8_VERSION, too.
 #-----------------------------------------------------------------------------#
-AUTOV8_VERSION = 7.7
+AUTOV8_VERSION = branch-heads/7.7
 AUTOV8_DIR = build/v8
 AUTOV8_OUT = build/v8/out.gn/x64.release.sample/obj
 AUTOV8_DEPOT_TOOLS = build/depot_tools
@@ -38,14 +38,14 @@ $(AUTOV8_DEPOT_TOOLS):
 	cd build; git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 
 $(AUTOV8_DIR): $(AUTOV8_DEPOT_TOOLS)
-	cd build; fetch v8; cd v8; git checkout branch-heads/$(AUTOV8_VERSION); gclient sync ; cd build/config ; cd ../.. ; tools/dev/v8gen.py $(PLATFORM) -- $(V8_OPTIONS)
+	cd build; fetch v8; cd v8; git checkout $(AUTOV8_VERSION); gclient sync ; cd build/config ; cd ../.. ; tools/dev/v8gen.py $(PLATFORM) -- $(V8_OPTIONS)
 
 $(AUTOV8_OUT)/third_party/icu/common/icudtb.dat:
 
 $(AUTOV8_OUT)/third_party/icu/common/icudtl.dat:
 
 v8: $(AUTOV8_DIR)
-	cd $(AUTOV8_DIR) ; env CXXFLAGS=-fPIC CFLAGS=-fPIC ninja -C out.gn/$(PLATFORM) d8
+	cd $(AUTOV8_DIR) ; env CXXFLAGS=-fPIC CFLAGS=-fPIC ninja -C out.gn/$(PLATFORM) v8_monolith d8
 
 include Makefile.shared
 
