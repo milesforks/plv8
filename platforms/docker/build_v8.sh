@@ -25,7 +25,7 @@ export DOCKER_BUILDKIT=1
 
 # Make a temp context so we can reach outside of our current directory
 
-docker builder build --build-arg SRC_DIR='.' -f "platforms/docker/Dockerfile.v8" \
+docker builder build --build-arg SRC_DIR='.' -f "platforms/docker/v8.dockerfile" \
              -t plv8:build-v8 ${SRC_DIR} \
     && exit 0
 
