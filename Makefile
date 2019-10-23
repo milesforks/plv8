@@ -8,54 +8,18 @@
 # can specify the v8 version by AUTOV8_VERSION, too.
 #-----------------------------------------------------------------------------#
 
-include: Makefile.v8
+include Makefile.v8
 
-AUTOV8_VERSION = branch-heads/7.7
 AUTOV8_DIR = build/v8
 AUTOV8_OUT = build/v8/out.gn/x64.release.sample/obj
-AUTOV8_DEPOT_TOOLS = build/depot_tools
-AUTOV8_LIB = $(AUTOV8_OUT)/libv8_snapshot.a
 ICU_STATIC_LIBS = -licui18n -licuuc
 AUTOV8_STATIC_LIBS = -lv8_monolith $(ICU_STATIC_LIBS)
-V8_OBJECTS = $(AUTOV8_OUT)/libv8_monolith.a
 
 ifndef USE_ICU
 	AUTOV8_STATIC_LIBS := $(filter-out $(ICU_STATIC_LIBS), $(AUTOV8_STATIC_LIBS))
 endif
 
-export PATH := $(abspath $(AUTOV8_DEPOT_TOOLS)):$(PATH)
-
 SHLIB_LINK += -L$(AUTOV8_OUT) -L$(AUTOV8_OUT)/third_party/icu $(AUTOV8_STATIC_LIBS)
-V8_OPTIONS = is_component_build=false v8_static_library=true v8_use_snapshot=true v8_use_external_startup_data=false use_custom_libcxx=false
-
-ifndef USE_ICU
-	V8_OPTIONS += v8_enable_i18n_support=false
-endif
-
-
-all: $(V8_OBJECTS)
-
-# For some reason, this solves parallel make dependency.
-plv8_config.h plv8.so: $(V8_OBJECTS)
-
-$(AUTOV8_DEPOT_TOOLS): 
-	mkdir -p build
-	cd build; test ! -d depot-tools && git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-
-$(AUTOV8_DIR): $(AUTOV8_DEPOT_TOOLS)
-	cd build; test ! -d v8 && fetch v8 && cd v8 && git checkout $(AUTOV8_VERSION) && gclient sync && cd build/config && cd ../.. && tools/dev/v8gen.py $(PLATFORM) -- $(V8_OPTIONS) || true
-
-
-$(AUTOV8_OUT)/third_party/icu/common/icudtb.dat:
-
-$(AUTOV8_OUT)/third_party/icu/common/icudtl.dat:
-
-.PHONY: v8
-$(V8_OBJECTS): $(AUTOV8_DIR) 
-	 cd $(AUTOV8_DIR) ; env CXXFLAGS=-fPIC CFLAGS=-fPIC ninja -C out.gn/$(PLATFORM) v8_monolith d8
-
-
-v8: $(V8_OBJECTS)
 
 include Makefile.shared
 
