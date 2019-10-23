@@ -27,13 +27,11 @@ ARG SRC_DIR
 # These args do not need to be defined, but can be used for convenience in the Dockerfile
 ARG WORK_DIR=/plv8
 
-RUN mkdir -p /plv8/build
-
 ADD ${SRC_DIR}/Makefile.v8 ${WORK_DIR}/
 
-WORKDIR ${WORK_DIR}
+RUN --mount=type=cache,target=/plv8/build/v8 --mount=type=cache,target=/plv8/build/depot_tools cd /plv8 && make -f Makefile.v8 v8
 
-RUN --mount=type=cache,target=/plv8/build make -f Makefile.v8 v8
+WORKDIR ${WORK_DIR}
 
 CMD ["/bin/bash"]
 
