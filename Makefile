@@ -14,6 +14,7 @@ AUTOV8_DEPOT_TOOLS = build/depot_tools
 AUTOV8_LIB = $(AUTOV8_OUT)/libv8_snapshot.a
 ICU_STATIC_LIBS = -licui18n -licuuc
 AUTOV8_STATIC_LIBS = -lv8_monolith $(ICU_STATIC_LIBS)
+V8_OBJECTS = $(AUTOV8_OUT)/libv8_monolith.a
 
 ifndef USE_ICU
 	AUTOV8_STATIC_LIBS := $(filter-out $(ICU_STATIC_LIBS), $(AUTOV8_STATIC_LIBS))
@@ -28,23 +29,23 @@ ifndef USE_ICU
 	V8_OPTIONS += v8_enable_i18n_support=false
 endif
 
-all: v8
+all: $(V8_OBJECTS)
 
 # For some reason, this solves parallel make dependency.
-plv8_config.h plv8.so: v8
+plv8_config.h plv8.so: $(V8_OBJECTS)
 
 $(AUTOV8_DEPOT_TOOLS):
 	mkdir -p build
-	cd build; git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+	cd build; test ! -d depot-tools && git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 
 $(AUTOV8_DIR): $(AUTOV8_DEPOT_TOOLS)
-	cd build; fetch v8; cd v8; git checkout $(AUTOV8_VERSION); gclient sync ; cd build/config ; cd ../.. ; tools/dev/v8gen.py $(PLATFORM) -- $(V8_OPTIONS)
+	cd build; test ! -d v8 && fetch v8 && cd v8 && git checkout $(AUTOV8_VERSION) && gclient sync && cd build/config && cd ../.. && tools/dev/v8gen.py $(PLATFORM) -- $(V8_OPTIONS) || true
 
 $(AUTOV8_OUT)/third_party/icu/common/icudtb.dat:
 
 $(AUTOV8_OUT)/third_party/icu/common/icudtl.dat:
 
-v8: $(AUTOV8_DIR)
+$(V8_OBJECTS): $(AUTOV8_DIR)
 	cd $(AUTOV8_DIR) ; env CXXFLAGS=-fPIC CFLAGS=-fPIC ninja -C out.gn/$(PLATFORM) v8_monolith d8
 
 include Makefile.shared
