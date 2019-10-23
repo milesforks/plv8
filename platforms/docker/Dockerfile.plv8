@@ -25,10 +25,15 @@ ARG WORK_DIR=/plv8
 
 ADD ${SRC_DIR}/. ${WORK_DIR}/
 
-COPY --from=plv8:build-v8 /plv8/build/v8/out.gn/x64.release.sample/obj /plv8/build/v8/out.gn/x64.release.sample/obj
-COPY --from=plv8:build-v8 /plv8/build/v8/out.gn/x64.release.sample/obj/third_party/icu /plv8/build/v8/out.gn/x64.release.sample/obj/third_party/icu
-COPY --from=plv8:build-v8 /plv8/build/v8/third_party/icu/common/icudtl.dat /plv8/build/v8/third_party/icu/common/icudtl.dat
+#COPY --from=plv8:build-v8 /plv8/build/v8/out.gn/x64.release.sample/obj /plv8/build/v8/out.gn/x64.release.sample/obj
+#COPY --from=plv8:build-v8 /plv8/build/v8/out.gn/x64.release.sample/obj/third_party/icu /plv8/build/v8/out.gn/x64.release.sample/obj/third_party/icu
+#COPY --from=plv8:build-v8 /plv8/build/v8/third_party/icu/common/icudtl.dat /plv8/build/v8/third_party/icu/common/icudtl.dat
+
+RUN mkdir -p /plv8/build/v8/out.gn
+COPY --from=plv8:build-v8 /plv8/out/v8/out.gn /plv8/build/v8/out.gn
+COPY --from=plv8:build-v8 /plv8/out/v8/third_party /plv8/build/v8/third_party
+RUN rm /plv8/Makefile.v8 && touch /plv8/Makefile.v8
 
 WORKDIR ${WORK_DIR}
 
-RUN make static
+RUN make

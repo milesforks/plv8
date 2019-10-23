@@ -29,7 +29,12 @@ ARG WORK_DIR=/plv8
 
 ADD ${SRC_DIR}/Makefile.v8 ${WORK_DIR}/
 
-RUN --mount=type=cache,target=/plv8/build/v8 --mount=type=cache,target=/plv8/build/depot_tools cd /plv8 && make -f Makefile.v8 v8
+RUN --mount=id=v8-cache,type=cache,target=/plv8/build mkdir -p /plv8/build && cd /plv8 && make -f Makefile.v8 v8
+
+RUN --mount=id=v8-cache,type=cache,target=/plv8/build mkdir -p /plv8/out/v8/out.gn \
+	&& cp -R /plv8/build/v8/out.gn /plv8/out/v8/out.gn \
+	&& mkdir -p /plv8/out/v8/third_party/icu \
+	&& cp -R /plv8/build/v8/third_party/icu /plv8/out/v8/third_party/icu
 
 WORKDIR ${WORK_DIR}
 
