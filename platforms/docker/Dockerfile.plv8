@@ -25,5 +25,8 @@ ARG WORK_DIR=/plv8
 
 ADD ${SRC_DIR}/. ${WORK_DIR}/
 
-COPY --from=v8-builder /plv8/build/ /plv8/build/
+COPY --from=plv8:build-v8 /plv8/build/v8/out.gn/x64.release.sample/obj /plv8/build/v8/out.gn/x64.release.sample/obj
+COPY --from=plv8:build-v8 /plv8/build/v8/out.gn/x64.release.sample/obj/third_party/icu /plv8/build/v8/out.gn/x64.release.sample/obj/third_party/icu
+COPY --from=plv8:build-v8 /plv8/build/v8/third_party/icu/common/icudtl.dat /plv8/build/v8/third_party/icu/common/icudtl.dat
+
 
