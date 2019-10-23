@@ -33,7 +33,7 @@ ADD ${SRC_DIR}/Makefile.v8 ${WORK_DIR}/
 
 WORKDIR ${WORK_DIR}
 
-RUN --mount=type=cache,target=/plv8/build make v8
+RUN --mount=type=cache,target=/plv8/build make -f Makefile.v8 v8
 
 CMD ["/bin/bash"]
 

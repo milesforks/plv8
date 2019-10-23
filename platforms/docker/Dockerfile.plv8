@@ -29,4 +29,6 @@ COPY --from=plv8:build-v8 /plv8/build/v8/out.gn/x64.release.sample/obj /plv8/bui
 COPY --from=plv8:build-v8 /plv8/build/v8/out.gn/x64.release.sample/obj/third_party/icu /plv8/build/v8/out.gn/x64.release.sample/obj/third_party/icu
 COPY --from=plv8:build-v8 /plv8/build/v8/third_party/icu/common/icudtl.dat /plv8/build/v8/third_party/icu/common/icudtl.dat
 
+WORKDIR ${WORK_DIR}
 
+RUN make static
