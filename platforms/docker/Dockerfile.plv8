@@ -1,0 +1,29 @@
+# syntax = docker/dockerfile:experimental
+
+ARG PG_VERSION=11.5
+ARG PLV8_VERSION=r3.0alpha
+ARG AUTOV8_VERSION=branch-heads/7.7
+
+FROM postgres:${PG_VERSION} AS build_plv8
+
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; \
+    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' \
+    > /etc/apt/apt.conf.d/keep-cache
+
+RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt apt-get update -qq \
+    && apt-get install -yy \
+    postgresql-server-dev-11 \
+    gcc \
+    make \
+    g++ \
+    lib++-dev \
+    curl \
+    git
+
+ARG SRC_DIR
+ARG WORK_DIR=/plv8
+
+ADD ${SRC_DIR}/. ${WORK_DIR}/
+
+COPY --from=v8-builder /plv8/build/ /plv8/build/
+
