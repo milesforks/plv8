@@ -116,6 +116,7 @@ COMPILE.cxx.bc = $(CLANG) -xc++ -Wno-ignored-attributes $(BITCODE_CXXFLAGS) $(CC
 	$(LLVM_BINPATH)/opt -module-summary -f $@ -o $@
 
 DATA_built =
+.PHONY: install
 all: $(DATA)
 %--$(PLV8_VERSION).sql: plv8.sql.common
 	sed -e 's/@LANG_NAME@/$*/g' $< | sed -e 's/@PLV8_VERSION@/$(PLV8_VERSION)/g' | $(CC) -E -P $(CPPFLAGS) -DLANG_$* - > $@
